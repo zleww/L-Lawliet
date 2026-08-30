@@ -2,18 +2,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
 
 :root {
-  --bg-color: #F8F6F0; /* Warm beige */
-  --text-main: #1C221F; /* Dark charcoal/green */
-  --text-muted: #5A605D;
-  --primary-btn: #2B4238; /* Dark green from mockup */
-  --card-bg: #FDFCF9;
-  --border-color: #E5E2D9;
+  --bg-main: #060D14; /* Deep Navy Background */
+  --bg-card: #0A1521; /* Slightly lighter navy for cards */
+  --text-main: #FFFFFF; /* White text */
+  --text-muted: #9BA3AF; /* Light grayish blue */
+  --accent-gold: #C89B53; /* Premium Gold */
+  --accent-gold-hover: #E3B467;
+  --border-color: #1A2634;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background-color: var(--bg-color);
+  background-color: var(--bg-main);
   color: var(--text-main);
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
@@ -37,15 +38,10 @@ body {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 1px;
+  color: var(--accent-gold); /* Gold Logo Text */
 }
 
-.logo-icon { height: 30px; } /* Replace src in HTML */
-
-.nav-links {
-  display: flex;
-  list-style: none;
-  gap: 30px;
-}
+.nav-links { display: flex; list-style: none; gap: 30px; }
 
 .nav-links a {
   text-decoration: none;
@@ -55,27 +51,32 @@ body {
   transition: color 0.2s;
 }
 
-.nav-links a:hover, .nav-links a.active { color: var(--text-muted); }
+.nav-links a:hover, .nav-links a.active { 
+  color: var(--accent-gold); 
+  border-bottom: 2px solid var(--accent-gold);
+  padding-bottom: 5px;
+}
 
 .btn-signin {
-  background-color: var(--primary-btn);
-  color: white;
+  background-color: var(--accent-gold);
+  color: #000000; /* Black text on gold button */
   border: none;
   padding: 10px 24px;
   border-radius: 4px;
   font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background-color 0.2s;
 }
-.btn-signin:hover { opacity: 0.9; }
+.btn-signin:hover { background-color: var(--accent-gold-hover); }
 
 /* --- Hero Section --- */
 .hero {
-  padding: 80px 5% 100px;
+  padding: 80px 5% 150px; /* Extra bottom padding for floating cards */
   max-width: 1400px;
   margin: 0 auto;
-  /* Add this line: */
-  background-image: url('images/your-hero-bg.jpg'); 
+  /* Add your Lady Justice background image here later: */
+  /* background-image: url('images/lady-justice-bg.jpg'); */
   background-size: cover;
   background-position: right center;
 }
@@ -84,27 +85,28 @@ body {
 
 .hero h1 {
   font-family: 'Playfair Display', serif;
-  font-size: 4.5rem;
+  font-size: 4rem;
   line-height: 1.1;
   color: var(--text-main);
   margin-bottom: 20px;
 }
 
+.gold-text { color: var(--accent-gold); }
+
 .hero p {
   font-size: 1.1rem;
-  color: var(--text-muted);
+  color: var(--text-main);
   margin-bottom: 40px;
 }
 
-.search-container {
-  display: flex;
-  margin-bottom: 15px;
-}
+.search-container { display: flex; margin-bottom: 15px; }
 
 .search-container input {
   flex: 1;
   padding: 18px 20px;
   border: 1px solid var(--border-color);
+  background-color: #FFFFFF;
+  color: #000;
   border-right: none;
   border-radius: 4px 0 0 4px;
   font-size: 1rem;
@@ -112,85 +114,68 @@ body {
 }
 
 .search-btn {
-  background-color: var(--primary-btn);
+  background-color: var(--bg-card);
   color: white;
-  border: none;
+  border: 1px solid var(--border-color);
   padding: 0 25px;
   border-radius: 0 4px 4px 0;
   cursor: pointer;
   font-size: 1.2rem;
 }
 
-.popular-tags {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-.popular-tags span { margin-left: 10px; cursor: pointer; }
+.popular-tags { font-size: 0.8rem; color: var(--text-muted); }
+.popular-tags span { margin-left: 10px; cursor: pointer; color: var(--text-main); }
+.popular-tags span:hover { color: var(--accent-gold); }
 
 /* --- Categories Section --- */
 .content-wrapper {
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 40px 5% 80px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.section-header h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-}
-
-.header-line {
-  flex: 1;
-  border: none;
-  border-top: 1px solid var(--border-color);
+  margin: -100px auto 0; /* Pulls the grid up over the hero section */
+  padding: 0 5% 80px;
+  position: relative;
+  z-index: 10;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 30px;
+  margin-bottom: 60px;
 }
 
 .category-card {
-  background: var(--card-bg);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 40px 30px;
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.category-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); }
+
+.category-card h3 { font-size: 1.2rem; margin-bottom: 10px; font-family: 'Playfair Display', serif; }
+.category-card p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 30px; }
+.explore-link { color: var(--accent-gold); text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+.explore-link:hover { text-decoration: underline; }
+
+/* --- Search Results Grid (Laws) --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
   cursor: pointer;
 }
 
-.category-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-}
-
-.cat-icon {
-  height: 60px;
-  margin-bottom: 20px;
-} /* Replace src in HTML */
-
-.category-card h3 {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-
-.category-card p {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-bottom: 30px;
-}
-
-.law-count {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
+.card h3 { color: var(--accent-gold); margin-bottom: 5px; }
+.card h4 { color: var(--text-main); margin-bottom: 10px; font-size: 1.1rem;}
+.card .summary { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px; }
+.click-more { color: var(--accent-gold); font-size: 0.85rem; font-weight: bold; }

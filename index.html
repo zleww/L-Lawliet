@@ -10,7 +10,8 @@
 <!-- Navigation -->
   <nav class="navbar">
     <div class="logo">
-      <img src="logo-placeholder.png" alt="Logo" class="logo-icon" />
+      <!-- Replace with your actual gold logo later -->
+      <img src="images/logo.png" alt="Logo" class="logo-icon" onerror="this.style.display='none'" />
       <span>L-LAWLIET</span>
     </div>
     <ul class="nav-links">
@@ -26,57 +27,53 @@
   <!-- Hero Section -->
   <header class="hero" id="heroSection">
     <div class="hero-content">
-      <h1>The Law,<br>Made Simple.</h1>
-      <p>Philippine Republic Acts explained in plain English.</p>
+      <h1>Understand the Law.<br><span class="gold-text">Empower Yourself.</span></h1>
+      <p>Philippine Republic Acts explained in plain English for every Filipino.</p>
       
       <div class="search-container">
         <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
         <button class="search-btn">🔍</button>
       </div>
       <div class="popular-tags">
-        <strong>Popular:</strong> 
+        <strong class="gold-text">Popular:</strong> 
         <span>Cybercrime Law</span> 
         <span>Tax Rules</span> 
         <span>Red Tape Law</span>
+        <span>Data Privacy</span>
       </div>
     </div>
   </header>
 
   <!-- Categories Section -->
   <main class="content-wrapper">
-    <div class="section-header">
-      <h2>Browse by Category</h2>
-      <hr class="header-line">
-    </div>
-
     <div class="category-grid">
       <!-- Card 1 -->
       <div class="category-card">
-        <img src="tech-icon.png" alt="Tech" class="cat-icon" />
+        <img src="images/tech-icon.png" alt="Tech" class="cat-icon" onerror="this.style.display='none'" />
         <h3>Technology & Crime</h3>
         <p>Laws on cybercrime, data privacy, and online safety.</p>
-        <span class="law-count">14 Laws</span>
+        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
       </div>
       
       <!-- Card 2 -->
       <div class="category-card">
-        <img src="finance-icon.png" alt="Finance" class="cat-icon" />
+        <img src="images/finance-icon.png" alt="Finance" class="cat-icon" onerror="this.style.display='none'" />
         <h3>Finance & Taxes</h3>
         <p>Tax laws, revenue rules, and financial regulations.</p>
-        <span class="law-count">14 Laws</span>
+        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
       </div>
 
       <!-- Card 3 -->
       <div class="category-card">
-        <img src="gov-icon.png" alt="Governance" class="cat-icon" />
+        <img src="images/gov-icon.png" alt="Governance" class="cat-icon" onerror="this.style.display='none'" />
         <h3>Governance & Business</h3>
         <p>Government transactions, business permits, and more.</p>
-        <span class="law-count">14 Laws</span>
+        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
       </div>
     </div>
     
-    <!-- This is where the JS will inject the actual searched laws later -->
-    <div id="lawsGrid" class="grid hidden"></div>
+    <!-- JS Injected Laws Grid -->
+    <div id="lawsGrid" class="grid"></div>
   </main>
 
   <!-- (Keep your existing modal code here) -->
