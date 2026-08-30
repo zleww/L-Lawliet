@@ -78,9 +78,10 @@ body {
 
 /* --- Hero Section --- */
 .hero {
-  padding: 80px 4vw 150px;
+  padding: 80px 4vw 120px;
   width: 100%;
-  background-size: cover;
+  background-size: 50% auto; /* Scales the background image down to take up half the width */
+  background-repeat: no-repeat;
   background-position: right center;
 }
 
@@ -235,13 +236,7 @@ body {
   align-items: center;
   max-width: 320px;
 }
-.featured-center-img img {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.6);
-}
+
 
 .featured-list-box {
   background-color: rgba(6, 13, 20, 0.85); 
