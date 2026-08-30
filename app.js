@@ -12,7 +12,10 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch('/api/laws');
       allLaws = await response.json();
-      displayLaws(allLaws);
+      
+      // Limit to first 5 laws on the home page
+      const top5Laws = allLaws.slice(0, 5);
+      displayLaws(top5Laws);
     } catch (error) {
       console.error("Error fetching laws:", error);
       lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
@@ -45,11 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 3. Handle live search filtering
+  // 3. Handle live search filtering (searches within the top 5 or all fetched laws)
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
-      const filtered = allLaws.filter(law => 
+      const filtered = allLaws.slice(0, 5).filter(law => 
         law.ra_number.toLowerCase().includes(query) ||
         law.plain_title.toLowerCase().includes(query) ||
         law.official_title.toLowerCase().includes(query) ||
@@ -60,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-// 4. Open Modal with full breakdown & comments
+  // 4. Open Modal with full breakdown & comments
   function openModal(law) {
     modalBody.innerHTML = `
       <span style="color: var(--accent-gold); font-weight: 600; font-size: 0.9rem;">${law.category} (${law.year})</span>
@@ -102,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
       <div id="commentsList">
         ${law.user_notes && law.user_notes.length > 0 
-          ? law.user_notes.map((n, index) => `
+          ? law.user_notes.map((n) => `
               <div class="comment-bubble" style="display: flex; justify-content: space-between; align-items: center;">
                 <span><strong>${n.user_name}:</strong> ${n.comment}</span>
                 <button class="delete-comment-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-left: 10px;">Delete</button>
@@ -121,13 +124,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modal.classList.remove("hidden");
 
-    // Attach delete event listeners to existing notes
     modalBody.querySelectorAll(".delete-comment-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         const bubble = e.target.closest(".comment-bubble");
         bubble.remove();
-        
-        // If list becomes empty, show the placeholder text
         const commentsList = document.getElementById("commentsList");
         if (commentsList.children.length === 0) {
           commentsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>';
@@ -135,7 +135,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Handle adding a new comment locally with its own delete button
     const submitBtn = document.getElementById("submitCommentBtn");
     submitBtn.addEventListener("click", () => {
       const nameInput = document.getElementById("userNameInput").value;
@@ -146,7 +145,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (commentsList.innerHTML.includes("No notes yet")) {
           commentsList.innerHTML = "";
         }
-        
         const newBubble = document.createElement("div");
         newBubble.className = "comment-bubble";
         newBubble.style.display = "flex";
@@ -156,25 +154,19 @@ document.addEventListener("DOMContentLoaded", () => {
           <span><strong>${nameInput}:</strong> ${commentInput}</span>
           <button class="delete-comment-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-left: 10px;">Delete</button>
         `;
-
-        // Add delete listener to the new comment
         newBubble.querySelector(".delete-comment-btn").addEventListener("click", () => {
           newBubble.remove();
           if (commentsList.children.length === 0) {
             commentsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>';
           }
         });
-
         commentsList.appendChild(newBubble);
-
-        // Clear inputs
         document.getElementById("userNameInput").value = "";
         document.getElementById("userCommentInput").value = "";
       }
     });
   }
 
-  // 5. Close Modal logic
   if (closeModal) {
     closeModal.addEventListener("click", () => modal.classList.add("hidden"));
   }
@@ -182,6 +174,5 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === modal) modal.classList.add("hidden");
   });
 
-  // Run fetch on load
   fetchLaws();
 });
