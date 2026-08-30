@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BatasBasic - PH Laws Made Simple</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 <!-- Navigation -->
   <nav class="navbar">
     <div class="logo">
@@ -72,8 +81,14 @@
 
   <!-- (Keep your existing modal code here) -->
 
-  <!-- For the logo -->
-<img src="images/your-logo.png" alt="Logo" class="logo-icon" />
+  <!-- Modal for the 14 Identifiers -->
+  <div id="lawModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeModal" class="close-btn">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
 
-<!-- For the category icons -->
-<img src="images/tech-icon.png" alt="Tech" class="cat-icon" />
+  <script src="app.js"></script>
+</body>
+</html>
