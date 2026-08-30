@@ -70,6 +70,38 @@ LAWS_DATABASE = [
         "target_audience": "Citizens dealing with government offices, business applicants.",
         "source_url": "https://www.officialgazette.gov.ph/2018/05/28/republic-act-no-11032/",
         "user_notes": []
+    },
+    {
+        "id": 4,
+        "ra_number": "RA 11313",
+        "official_title": "Safe Spaces Act (Bawal Bastos Law)",
+        "plain_title": "Anti-Catcalling & Gender-Based Harassment Law",
+        "category": "Social & Welfare",
+        "year": 2019,
+        "tldr_summary": "Penalizes gender-based sexual harassment in streets, public spaces, online, workplaces, and educational institutions.",
+        "full_breakdown": "Covers wolf-whistling, catcalling, unwanted physical touching, persistent uninvited remarks, and cyber-flashing online.",
+        "why_it_matters": "Ensures public and digital spaces are safe, respectful, and free from verbal or physical harassment for everyone.",
+        "example_scenario": "If someone makes unwanted lewd comments or unwelcome gestures toward you in public or online, it is punishable by law.",
+        "penalties": "Community service, fines ranging from ₱10,000 to ₱500,000, and imprisonment depending on the gravity of the offense.",
+        "target_audience": "All citizens, students, employees, public transport operators, and online users.",
+        "source_url": "https://www.officialgazette.gov.ph/2019/04/17/republic-act-no-11313/",
+        "user_notes": []
+    },
+    {
+        "id": 5,
+        "ra_number": "RA 9994",
+        "official_title": "Expanded Senior Citizens Act of 2010",
+        "plain_title": "Senior Citizens Benefits & 20% Discount Law",
+        "category": "Social & Welfare",
+        "year": 2010,
+        "tldr_summary": "Grants senior citizens a 20% discount and VAT exemption on medicines, medical services, transport, and public utilities.",
+        "full_breakdown": "Provides senior citizens privileges including monthly stipends for indigents, free medical/dental services, and prioritization in establishments.",
+        "why_it_matters": "Provides financial relief and social protection for elderly Filipinos who have contributed to society.",
+        "example_scenario": "When a senior citizen buys prescribed medicines or eats at a restaurant, they are entitled to a 20% discount plus VAT exemption upon presenting their Senior Citizen ID.",
+        "penalties": "Fines from ₱50,000 to ₱200,000 and imprisonment for business owners who refuse to grant senior discounts.",
+        "target_audience": "Senior citizens (aged 60 and above), families, and all commercial establishments.",
+        "source_url": "https://www.officialgazette.gov.ph/2010/02/15/republic-act-no-9994/",
+        "user_notes": []
     }
     # (Add the remaining 17 laws following this identical 14-field structure)
 ]

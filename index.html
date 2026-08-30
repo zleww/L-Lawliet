@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BatasBasic - PH Laws Made Simple</title>
+  <title>L-Lawliet - PH Laws Made Simple</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<!-- Navigation -->
+  <!-- Navigation -->
   <nav class="navbar">
     <div class="logo">
-      <!-- Replace with your actual gold logo later -->
-      <img src="images/logo.png" alt="Logo" class="logo-icon" onerror="this.style.display='none'" />
       <span>L-LAWLIET</span>
     </div>
     <ul class="nav-links">
@@ -25,7 +23,7 @@
   </nav>
 
   <!-- Hero Section -->
-  <header class="hero" id="heroSection">
+  <header class="hero" id="heroSection" style="background-image: url('images/hero-justice.png');">
     <div class="hero-content">
       <h1>Understand the Law.<br><span class="gold-text">Empower Yourself.</span></h1>
       <p>Philippine Republic Acts explained in plain English for every Filipino.</p>
@@ -44,59 +42,31 @@
     </div>
   </header>
 
-  <!-- Categories Section -->
-  <main class="content-wrapper">
-    <div class="category-grid">
-      <!-- Card 1 -->
-      <div class="category-card">
-        <img src="images/tech-icon.png" alt="Tech" class="cat-icon" onerror="this.style.display='none'" />
-        <h3>Technology & Crime</h3>
-        <p>Laws on cybercrime, data privacy, and online safety.</p>
-        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
-      </div>
-      
-      <!-- Card 2 -->
-      <div class="category-card">
-        <img src="images/finance-icon.png" alt="Finance" class="cat-icon" onerror="this.style.display='none'" />
-        <h3>Finance & Taxes</h3>
-        <p>Tax laws, revenue rules, and financial regulations.</p>
-        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
-      </div>
-
-      <!-- Card 3 -->
-      <div class="category-card">
-        <img src="images/gov-icon.png" alt="Governance" class="cat-icon" onerror="this.style.display='none'" />
-        <h3>Governance & Business</h3>
-        <p>Government transactions, business permits, and more.</p>
-        <a href="#" class="explore-link">Explore 14 laws &rarr;</a>
-      </div>
-    </div>
-
-    <!-- Light Theme: Features Banner -->
+  <!-- Features Banner -->
   <section class="features-banner bg-light">
     <div class="feature-item">
-      <span class="icon-placeholder">📖</span>
+      <img src="images/icon-plain.png" alt="Plain English" class="icon-img" />
       <div class="feature-text">
         <h4>Plain English</h4>
         <p>Laws explained in simple terms.</p>
       </div>
     </div>
     <div class="feature-item">
-      <span class="icon-placeholder">🗂️</span>
+      <img src="images/icon-organized.png" alt="Organized" class="icon-img" />
       <div class="feature-text">
         <h4>Organized</h4>
         <p>Browse by categories that make sense.</p>
       </div>
     </div>
     <div class="feature-item">
-      <span class="icon-placeholder">⚖️</span>
+      <img src="images/icon-trusted.png" alt="Trusted" class="icon-img" />
       <div class="feature-text">
         <h4>Trusted</h4>
         <p>Based on official Republic Acts.</p>
       </div>
     </div>
     <div class="feature-item">
-      <span class="icon-placeholder">👥</span>
+      <img src="images/icon-accessible.png" alt="Accessible" class="icon-img" />
       <div class="feature-text">
         <h4>Accessible</h4>
         <p>Free and easy to use for everyone.</p>
@@ -104,11 +74,9 @@
     </div>
   </section>
 
-  <!-- Light Theme: Browse by Category -->
+  <!-- Browse by Category (Light) -->
   <section class="browse-category bg-light">
     <div class="browse-layout">
-      
-      <!-- Left Sidebar -->
       <div class="browse-sidebar">
         <h2>Browse by<br>Category</h2>
         <hr class="gold-line">
@@ -116,36 +84,32 @@
         <button class="btn-dark">View all categories &rarr;</button>
       </div>
 
-      <!-- Right Scrollable/Grid Area -->
       <div class="category-cards-row">
         <div class="category-card light-card">
-          <span class="icon-placeholder">💻</span>
+          <img src="images/tech-icon.png" alt="Tech" class="cat-icon-img" />
           <h4>Technology & Crime</h4>
           <p>Cybercrime, data privacy, and more.</p>
           <span class="law-count">14 Laws</span>
         </div>
         <div class="category-card light-card">
-          <span class="icon-placeholder">🧾</span>
+          <img src="images/finance-icon.png" alt="Finance" class="cat-icon-img" />
           <h4>Finance & Taxes</h4>
           <p>Tax rules, revenue laws, and financial matters.</p>
           <span class="law-count">14 Laws</span>
         </div>
         <div class="category-card light-card">
-          <span class="icon-placeholder">🏛️</span>
+          <img src="images/gov-icon.png" alt="Governance" class="cat-icon-img" />
           <h4>Governance & Business</h4>
           <p>Government transactions, permits, and regulations.</p>
           <span class="law-count">14 Laws</span>
         </div>
-        <!-- Add more cards as needed -->
       </div>
-
     </div>
   </section>
 
-  <!-- Dark Theme: Featured Law -->
+  <!-- Dark Theme: Featured Law with Center Image -->
   <section class="featured-law">
     <div class="featured-layout">
-      <!-- Left Content -->
       <div class="featured-content">
         <h4 class="gold-text">Featured Law</h4>
         <h2>RA 10175</h2>
@@ -154,7 +118,11 @@
         <button class="btn-gold">Read More &rarr;</button>
       </div>
 
-      <!-- Right List Box -->
+      <!-- Center Image -->
+      <div class="featured-center-img">
+        <img src="images/featured-gavel.png" alt="Featured Gavel" />
+      </div>
+
       <div class="featured-list-box">
         <h4 class="gold-text">You'll learn about:</h4>
         <ul class="check-list">
@@ -168,31 +136,31 @@
     </div>
   </section>
 
-  <!-- Dark Theme: Stats Footer Banner -->
+  <!-- Stats Banner -->
   <section class="stats-banner">
     <div class="stat-item">
-      <span class="icon-placeholder">📖</span>
+      <img src="images/stat-books.png" alt="Books" class="stat-icon-img" />
       <div class="stat-text">
         <h4>500+</h4>
         <p>Republic Acts<br>Explained in plain English</p>
       </div>
     </div>
     <div class="stat-item">
-      <span class="icon-placeholder">👥</span>
+      <img src="images/stat-categories.png" alt="Categories" class="stat-icon-img" />
       <div class="stat-text">
         <h4>10+</h4>
         <p>Categories<br>Organized by topics</p>
       </div>
     </div>
     <div class="stat-item">
-      <span class="icon-placeholder">⚖️</span>
+      <img src="images/stat-shield.png" alt="Shield" class="stat-icon-img" />
       <div class="stat-text">
         <h4>100%</h4>
         <p>Official & Trusted<br>Based on official sources</p>
       </div>
     </div>
     <div class="stat-item">
-      <span class="icon-placeholder">🌐</span>
+      <img src="images/stat-globe.png" alt="Globe" class="stat-icon-img" />
       <div class="stat-text">
         <h4>For Every Filipino</h4>
         <p>Free, accessible,<br>and easy to understand</p>
@@ -200,14 +168,12 @@
     </div>
   </section>
 
-  <!-- JS Injected Laws Grid -->
+  <!-- JavaScript Generated Laws Grid -->
   <main class="content-wrapper">
-      <div id="lawsGrid" class="grid"></div>
+    <div id="lawsGrid" class="grid"></div>
   </main>
 
-  <!-- (Keep your existing modal code here) -->
-
-  <!-- Modal for the 14 Identifiers -->
+  <!-- Modal Deep Dive View -->
   <div id="lawModal" class="modal hidden">
     <div class="modal-content">
       <button id="closeModal" class="close-btn">&times;</button>
