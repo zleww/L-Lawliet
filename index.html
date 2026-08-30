@@ -1,32 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BatasBasic - PH Laws Made Simple</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <header>
-    <h1>BatasBasic</h1>
-    <p>Philippine Republic Acts explained in plain English.</p>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic (e.g., Cybercrime, Tax)..." />
+<!-- Navigation -->
+  <nav class="navbar">
+    <div class="logo">
+      <img src="logo-placeholder.png" alt="Logo" class="logo-icon" />
+      <span>L-LAWLIET</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Home</a></li>
+      <li><a href="#">Browse Laws</a></li>
+      <li><a href="#">Categories</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">Resources</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero" id="heroSection">
+    <div class="hero-content">
+      <h1>The Law,<br>Made Simple.</h1>
+      <p>Philippine Republic Acts explained in plain English.</p>
+      
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
+        <button class="search-btn">🔍</button>
+      </div>
+      <div class="popular-tags">
+        <strong>Popular:</strong> 
+        <span>Cybercrime Law</span> 
+        <span>Tax Rules</span> 
+        <span>Red Tape Law</span>
+      </div>
     </div>
   </header>
 
-  <main>
-    <div id="lawsGrid" class="grid"></div>
+  <!-- Categories Section -->
+  <main class="content-wrapper">
+    <div class="section-header">
+      <h2>Browse by Category</h2>
+      <hr class="header-line">
+    </div>
+
+    <div class="category-grid">
+      <!-- Card 1 -->
+      <div class="category-card">
+        <img src="tech-icon.png" alt="Tech" class="cat-icon" />
+        <h3>Technology & Crime</h3>
+        <p>Laws on cybercrime, data privacy, and online safety.</p>
+        <span class="law-count">14 Laws</span>
+      </div>
+      
+      <!-- Card 2 -->
+      <div class="category-card">
+        <img src="finance-icon.png" alt="Finance" class="cat-icon" />
+        <h3>Finance & Taxes</h3>
+        <p>Tax laws, revenue rules, and financial regulations.</p>
+        <span class="law-count">14 Laws</span>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="category-card">
+        <img src="gov-icon.png" alt="Governance" class="cat-icon" />
+        <h3>Governance & Business</h3>
+        <p>Government transactions, business permits, and more.</p>
+        <span class="law-count">14 Laws</span>
+      </div>
+    </div>
+    
+    <!-- This is where the JS will inject the actual searched laws later -->
+    <div id="lawsGrid" class="grid hidden"></div>
   </main>
 
-  <!-- Modal for the 14 Identifiers -->
-  <div id="lawModal" class="modal hidden">
-    <div class="modal-content">
-      <button id="closeModal" class="close-btn">&times;</button>
-      <div id="modalBody"></div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+  <!-- (Keep your existing modal code here) -->
