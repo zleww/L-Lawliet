@@ -80,7 +80,7 @@ body {
 .hero {
   padding: 80px 4vw 120px;
   width: 100%;
-  background-size: 50% auto; /* Scales the background image down to take up half the width */
+  background-size: 100% auto; /* Scales the background image down to take up half the width */
   background-repeat: no-repeat;
   background-position: right center;
 }
@@ -148,6 +148,25 @@ body {
   border-bottom: 1px solid #E5E2D9;
   width: 100%;
 }
+
+.featured-center-img {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 250px; /* Increased size to make it big */
+}
+
+.featured-center-img img {
+  width: 100%;
+  height: auto;
+  border-radius: 0; /* Removes rounded corners */
+  object-fit: contain;
+  background: transparent; /* Removes any background */
+  box-shadow: none !important; /* Strips away all box shadows */
+  border: none !important; /* Strips away any border boxes */
+}
+
 .feature-item { display: flex; align-items: center; gap: 15px; }
 .icon-img { height: 35px; width: auto; }
 .feature-text h4 { font-size: 1rem; margin-bottom: 3px; font-family: 'Playfair Display', serif; }
