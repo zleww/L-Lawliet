@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   const lawsGrid = document.getElementById("lawsGrid");
   const searchInput = document.getElementById("searchInput");
+  const searchSubmitBtn = document.getElementById("searchSubmitBtn");
+  const popularTags = document.querySelectorAll(".tag-link");
+  const featuredReadMoreBtn = document.getElementById("featuredReadMoreBtn");
   const modal = document.getElementById("lawModal");
   const modalBody = document.getElementById("modalBody");
   const closeModal = document.getElementById("closeModal");
@@ -42,13 +45,12 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="click-more" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: bold;">Click to view full details &rarr;</span>
       `;
       
-      // Open modal on click
       card.addEventListener("click", () => openModal(law));
       lawsGrid.appendChild(card);
     });
   }
 
-  // 3. Handle live search filtering (searches within the top 5 or all fetched laws)
+  // 3. Handle live search filtering & search submission button
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
@@ -63,7 +65,39 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 4. Open Modal with full breakdown & comments
+  if (searchSubmitBtn) {
+    searchSubmitBtn.addEventListener("click", () => {
+      const query = searchInput.value.trim();
+      if (query) {
+        // Redirect to browse page with search query parameter
+        window.location.href = `browse.html?search=${encodeURIComponent(query)}`;
+      } else {
+        window.location.href = `browse.html`;
+      }
+    });
+  }
+
+  // 4. Handle Popular Tags Click -> Redirect to Browse Page with filter query
+  popularTags.forEach(tag => {
+    tag.style.cursor = "pointer";
+    tag.addEventListener("click", () => {
+      const searchTerm = tag.getAttribute("data-search");
+      window.location.href = `browse.html?search=${encodeURIComponent(searchTerm)}`;
+    });
+  });
+
+  // 5. Handle Featured Law "Read More" Button -> Open modal for RA 10175 (ID 1)
+  if (featuredReadMoreBtn) {
+    featuredReadMoreBtn.addEventListener("click", () => {
+      // Find RA 10175 from our loaded dataset
+      const ra10175 = allLaws.find(law => law.ra_number === "RA 10175") || allLaws[0];
+      if (ra10175) {
+        openModal(ra10175);
+      }
+    });
+  }
+
+  // 6. Open Modal with full breakdown & comments
   function openModal(law) {
     modalBody.innerHTML = `
       <span style="color: var(--accent-gold); font-weight: 600; font-size: 0.9rem;">${law.category} (${law.year})</span>

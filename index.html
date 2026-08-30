@@ -28,16 +28,16 @@
       <h1>Understand the Law.<br><span class="gold-text">Empower Yourself.</span></h1>
       <p>Philippine Republic Acts explained in plain English for every Filipino.</p>
       
-      <div class="search-container">
+<div class="search-container">
         <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
-        <button class="search-btn">🔍</button>
+        <button id="searchSubmitBtn" class="search-btn">🔍</button>
       </div>
       <div class="popular-tags">
         <strong class="gold-text">Popular:</strong> 
-        <span>Cybercrime Law</span> 
-        <span>Tax Rules</span> 
-        <span>Red Tape Law</span>
-        <span>Data Privacy</span>
+        <span class="tag-link" data-search="Cybercrime Law">Cybercrime Law</span> 
+        <span class="tag-link" data-search="Tax Rules">Tax Rules</span> 
+        <span class="tag-link" data-search="Red Tape Law">Red Tape Law</span>
+        <span class="tag-link" data-search="Data Privacy">Data Privacy</span>
       </div>
     </div>
   </header>
@@ -116,7 +116,7 @@
         <h2>RA 10175</h2>
         <h3>Online Safety & Anti-Cybercrime Law</h3>
         <p>Protects people from online hacking, identity theft, cyber-bullying, and online libel.</p>
-        <button class="btn-gold">Read More &rarr;</button>
+        <button id="featuredReadMoreBtn" class="btn-gold">Read More &rarr;</button>
       </div>
 
       <!-- Right List Box -->
