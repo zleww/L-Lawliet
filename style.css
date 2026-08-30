@@ -1,0 +1,206 @@
+/* --- Base Variables & Reset --- */
+:root {
+  --bg-color: #F8FAFC;
+  --card-bg: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --accent: #0284C7; /* Modern calm blue */
+  --accent-hover: #0369A1;
+  --border: #E2E8F0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.6;
+  padding: 0 20px;
+}
+
+/* --- Header & Search --- */
+header {
+  text-align: center;
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+header p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 25px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 1rem;
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  border-color: var(--accent);
+}
+
+/* --- Grid & Cards --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1000px;
+  margin: 0 auto 50px;
+}
+
+.card {
+  background: var(--card-bg);
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+}
+
+.badge {
+  display: inline-block;
+  background: #E0F2FE;
+  color: var(--accent-hover);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.card h3 {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.card h4 {
+  font-size: 1.25rem;
+  margin-bottom: 10px;
+}
+
+.card .summary {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+}
+
+.click-more {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+/* --- Modal (Deep Dive View) --- */
+.hidden {
+  display: none !important;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 30px;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px; right: 20px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-btn:hover { color: red; }
+
+.modal-content h2 { margin: 15px 0 5px; font-size: 1.8rem; }
+.official-title { color: var(--text-muted); font-style: italic; margin-bottom: 20px; }
+.modal-content hr { border: 0; border-top: 1px solid var(--border); margin: 25px 0; }
+
+.detail-section { margin-bottom: 20px; }
+.detail-section h4 { color: var(--accent); margin-bottom: 5px; font-size: 1.1rem; }
+.detail-section a { color: var(--accent); font-weight: bold; text-decoration: none; }
+.detail-section a:hover { text-decoration: underline; }
+
+/* --- Comments Section --- */
+.comment-bubble {
+  background: var(--bg-color);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  border-left: 4px solid var(--accent);
+}
+
+.comment-form {
+  margin-top: 20px;
+  background: #F1F5F9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.comment-form input, .comment-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.comment-form button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.comment-form button:hover { background: var(--accent-hover); }
