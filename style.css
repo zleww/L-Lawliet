@@ -11,7 +11,7 @@
   --border-color: #1A2634;
 }
 
-/* --- Resets & Edge-to-Edge Fix --- */
+/* --- Resets & Full-Width Edge-to-Edge Fix --- */
 * { 
   box-sizing: border-box; 
   margin: 0; 
@@ -24,17 +24,16 @@ body {
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
   width: 100%;
-  overflow-x: hidden; /* Prevents horizontal scrolling/boxing in */
+  overflow-x: hidden;
 }
 
-/* --- Navigation --- */
+/* --- Navigation (Full Width) --- */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 5%;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 20px 4vw;
+  width: 100%;
 }
 
 .logo {
@@ -80,17 +79,15 @@ body {
 
 .btn-signin:hover { background-color: var(--accent-gold-hover); }
 
-/* --- Hero Section --- */
+/* --- Hero Section (Full Width) --- */
 .hero {
-  padding: 80px 5% 150px;
-  max-width: 1400px;
-  margin: 0 auto;
-  /* background-image: url('images/lady-justice-bg.jpg'); */
+  padding: 80px 4vw 150px;
+  width: 100%;
   background-size: cover;
   background-position: right center;
 }
 
-.hero-content { max-width: 600px; }
+.hero-content { max-width: 700px; }
 
 .hero h1 {
   font-family: 'Playfair Display', serif;
@@ -108,7 +105,7 @@ body {
   margin-bottom: 40px;
 }
 
-.search-container { display: flex; margin-bottom: 15px; }
+.search-container { display: flex; margin-bottom: 15px; width: 100%; }
 
 .search-container input {
   flex: 1;
@@ -136,12 +133,13 @@ body {
 .popular-tags span { margin-left: 10px; cursor: pointer; color: var(--text-main); }
 .popular-tags span:hover { color: var(--accent-gold); }
 
-/* --- Top Dark Category Cards (Optional) --- */
+/* --- Top Dark Category Cards --- */
 .category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 30px;
   margin-bottom: 60px;
+  width: 100%;
 }
 
 .category-card {
@@ -162,29 +160,39 @@ body {
 
 /* --- Light & Mixed Theme Sections --- */
 .bg-light {
-  background-color: #F8F6F0; /* Cream background */
-  color: #1C221F; /* Dark text */
+  background-color: #F8F6F0; 
+  color: #1C221F; 
+  width: 100%;
 }
 
 /* Features Banner */
 .features-banner {
   display: flex;
   justify-content: space-around;
-  padding: 40px 5%;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 40px 4vw;
   border-bottom: 1px solid #E5E2D9;
+  width: 100%;
 }
 .feature-item { display: flex; align-items: center; gap: 15px; }
 .icon-placeholder { font-size: 2rem; }
 .feature-text h4 { font-size: 1rem; margin-bottom: 3px; font-family: 'Playfair Display', serif; }
 .feature-text p { font-size: 0.8rem; color: #5A605D; }
 
-/* Browse Category (Light) */
-.browse-category { padding: 80px 5%; }
+/* Browse Category (Light) - FIXED: No more scroll bar, turned into a grid */
+.browse-category { padding: 80px 4vw; width: 100%; }
 .browse-layout {
   display: flex;
+  flex-direction: column;
   gap: 40px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+}
+@media(min-width: 992px) {
+  .browse-layout {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 .browse-sidebar { flex: 1; min-width: 250px; }
 .browse-sidebar h2 { font-family: 'Playfair Display', serif; font-size: 2.2rem; line-height: 1.1; margin-bottom: 15px; }
@@ -192,21 +200,20 @@ body {
 .browse-sidebar p { font-size: 0.95rem; color: #5A605D; margin-bottom: 30px; }
 .btn-dark { background-color: #060D14; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; }
 
-/* Modernized Light Cards */
+/* Clean Responsive Grid Layout (Replaced the scrolling row) */
 .category-cards-row {
   flex: 3;
-  display: flex;
-  gap: 30px; 
-  overflow-x: auto; 
-  padding: 20px 10px 40px; 
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 25px; 
+  width: 100%;
 }
 .light-card {
   background: white;
   border: none;
   border-radius: 12px; 
-  padding: 40px 30px;
+  padding: 40px 20px;
   text-align: center;
-  min-width: 240px;
   color: #1C221F;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); 
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -221,22 +228,28 @@ body {
 
 /* --- Featured Law Section (Dark) --- */
 .featured-law {
-  padding: 80px 5%;
+  padding: 80px 4vw;
   background-color: #0A1521;
   background-size: cover;
   background-position: center;
   border-top: 1px solid var(--accent-gold);
   border-bottom: 1px solid var(--accent-gold);
+  width: 100%;
 }
 .featured-layout {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 40px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
-.featured-content { flex: 1; max-width: 500px; }
+@media(min-width: 992px) {
+  .featured-layout {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+.featured-content { flex: 1; max-width: 600px; }
 .featured-content h2 { font-size: 2.5rem; font-family: 'Playfair Display', serif; margin: 5px 0; }
 .featured-content h3 { font-size: 1.2rem; font-weight: 500; margin-bottom: 15px; }
 .featured-content p { color: var(--text-muted); margin-bottom: 30px; }
@@ -247,7 +260,8 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 40px;
-  min-width: 350px;
+  width: 100%;
+  max-width: 500px;
 }
 .check-list { list-style: none; margin: 20px 0 30px; }
 .check-list li { margin-bottom: 12px; font-size: 0.9rem; position: relative; padding-left: 25px; }
@@ -261,9 +275,12 @@ body {
 .stats-banner {
   display: flex;
   justify-content: space-around;
-  padding: 40px 5%;
+  flex-wrap: wrap;
+  gap: 30px;
+  padding: 40px 4vw;
   background-color: var(--bg-main);
   border-bottom: 1px solid var(--border-color);
+  width: 100%;
 }
 .stat-item { display: flex; align-items: center; gap: 15px; }
 .stat-text h4 { font-size: 1.5rem; font-family: 'Playfair Display', serif; margin-bottom: 2px; }
@@ -271,14 +288,15 @@ body {
 
 /* --- JavaScript Generated Laws Wrapper --- */
 .content-wrapper {
-  max-width: 1400px;
-  margin: 80px auto; 
-  padding: 0 5%;
+  width: 100%;
+  margin: 80px 0; 
+  padding: 0 4vw;
 }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+  width: 100%;
 }
 .card {
   background: var(--bg-card);
