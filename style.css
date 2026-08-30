@@ -27,12 +27,19 @@ body {
 }
 
 /* --- Navigation --- */
+/* --- Sticky Navigation --- */
 .navbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background-color: rgba(6, 13, 20, 0.95); /* Deep Navy with slight transparency */
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 4vw;
   width: 100%;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .logo {

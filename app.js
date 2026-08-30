@@ -201,5 +201,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === modal) modal.classList.add("hidden");
   });
 
+  // Close Modal on ESC key press
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+      modal.classList.add("hidden");
+    }
+  });
+
   fetchLaws();
 });
