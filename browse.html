@@ -62,6 +62,7 @@
   </div>
 
   <!-- Dedicated Browse Page Script -->
+<!-- Dedicated Browse Page Script -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const lawsGrid = document.getElementById("lawsGrid");
@@ -74,7 +75,14 @@
       let allLaws = [];
       let currentCategory = "All";
 
-      // 1. Fetch laws from FastAPI backend
+      // 1. Check URL parameters for any incoming search query (e.g., from popular tags)
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialSearchQuery = urlParams.get("search");
+      if (initialSearchQuery && searchInput) {
+        searchInput.value = initialSearchQuery;
+      }
+
+      // 2. Fetch laws from FastAPI backend
       async function fetchLaws() {
         try {
           const response = await fetch('/api/laws');
@@ -86,7 +94,7 @@
         }
       }
 
-      // 2. Filter & Render laws
+      // 3. Filter & Render laws
       function filterAndDisplay() {
         const query = searchInput ? searchInput.value.toLowerCase() : "";
         
@@ -129,12 +137,12 @@
         });
       }
 
-      // 3. Search listener
+      // 4. Search listener
       if (searchInput) {
         searchInput.addEventListener("input", filterAndDisplay);
       }
 
-      // 4. Category filter pill listener
+      // 5. Category filter pill listener
       filterButtons.forEach(btn => {
         btn.addEventListener("click", (e) => {
           filterButtons.forEach(b => {
@@ -154,7 +162,7 @@
         });
       });
 
-      // 5. Modal display and delete logic (same as main app)
+      // 6. Modal display and delete logic
       function openModal(law) {
         modalBody.innerHTML = `
           <span style="color: var(--accent-gold); font-weight: 600; font-size: 0.9rem;">${law.category} (${law.year})</span>
