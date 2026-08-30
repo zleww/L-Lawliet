@@ -136,16 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
 
-      <h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
+<h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
       <div id="commentsList">
-        ${law.user_notes && law.user_notes.length > 0 
-          ? law.user_notes.map((n) => `
-              <div class="comment-bubble" style="display: flex; justify-content: space-between; align-items: center;">
-                <span><strong>${n.user_name}:</strong> ${n.comment}</span>
-                <button class="delete-comment-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-left: 10px;">Delete</button>
-              </div>
-            `).join('') 
-          : '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>'}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>
       </div>
 
       <div class="comment-form">
