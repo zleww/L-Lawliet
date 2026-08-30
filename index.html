@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BatasBasic - PH Laws Made Simple</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>BatasBasic</h1>
+    <p>Philippine Republic Acts explained in plain English.</p>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic (e.g., Cybercrime, Tax)..." />
+    </div>
+  </header>
+
+  <main>
+    <div id="lawsGrid" class="grid"></div>
+  </main>
+
+  <!-- Modal for the 14 Identifiers -->
+  <div id="lawModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeModal" class="close-btn">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
