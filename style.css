@@ -74,8 +74,8 @@ body {
   padding: 80px 5% 100px;
   max-width: 1400px;
   margin: 0 auto;
-  /* Add your background image here later: */
-  /* background-image: url('your-hero-bg.jpg'); */
+  /* Add this line: */
+  background-image: url('images/your-hero-bg.jpg'); 
   background-size: cover;
   background-position: right center;
 }
