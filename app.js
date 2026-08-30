@@ -1,118 +1,152 @@
-const API_URL = "/api";
-let currentLawId = null;
-
-// Fetch and render law cards (Only shows 4-5 initial identifiers)
-async function loadLaws(searchTerm = "") {
-  const res = await fetch(`${API_URL}/laws${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`);
-  const laws = await res.json();
-  const grid = document.getElementById("lawsGrid");
-  
-  grid.innerHTML = laws.map(law => `
-    <div class="card" onclick="openLawDetail(${law.id})">
-      <div class="badge">${law.category}</div>
-      <h3>${law.ra_number}</h3>
-      <h4>${law.plain_title}</h4>
-      <p class="summary">${law.tldr_summary}</p>
-      <span class="click-more">Click to view all 14 details →</span>
-    </div>
-  `).join("");
-}
-
-// Open modal displaying full 14 identifiers
-async function openLawDetail(id) {
-  currentLawId = id;
-  const res = await fetch(`${API_URL}/laws/${id}`);
-  const law = await res.json();
-  
+document.addEventListener("DOMContentLoaded", () => {
+  const lawsGrid = document.getElementById("lawsGrid");
+  const searchInput = document.getElementById("searchInput");
+  const modal = document.getElementById("lawModal");
   const modalBody = document.getElementById("modalBody");
-  modalBody.innerHTML = `
-    <span class="badge">${law.category}</span>
-    <h2>${law.ra_number}: ${law.plain_title}</h2>
-    <p class="official-title"><strong>Official Title:</strong> ${law.official_title} (${law.year})</p>
+  const closeModal = document.getElementById("closeModal");
+
+  let allLaws = [];
+
+  // 1. Fetch laws from your FastAPI backend
+  async function fetchLaws() {
+    try {
+      const response = await fetch('/api/laws');
+      allLaws = await response.json();
+      displayLaws(allLaws);
+    } catch (error) {
+      console.error("Error fetching laws:", error);
+      lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
+    }
+  }
+
+  // 2. Render laws into the grid
+  function displayLaws(laws) {
+    lawsGrid.innerHTML = "";
     
-    <hr/>
-    <div class="detail-section">
-      <h4>📌 Quick Summary (TL;DR)</h4>
-      <p>${law.tldr_summary}</p>
-    </div>
+    if (laws.length === 0) {
+      lawsGrid.innerHTML = `<p style="color: var(--text-muted);">No laws found matching your search.</p>`;
+      return;
+    }
 
-    <div class="detail-section">
-      <h4>📖 Full Simplified Breakdown</h4>
-      <p>${law.full_breakdown}</p>
-    </div>
+    laws.forEach(law => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <span class="badge" style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 10px;">${law.category}</span>
+        <h3 style="color: var(--accent-gold); margin-bottom: 5px;">${law.ra_number}</h3>
+        <h4 style="color: var(--text-main); margin-bottom: 10px; font-size: 1.1rem;">${law.plain_title}</h4>
+        <p class="summary" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">${law.tldr_summary}</p>
+        <span class="click-more" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: bold;">Click to view full details &rarr;</span>
+      `;
+      
+      // Open modal on click
+      card.addEventListener("click", () => openModal(law));
+      lawsGrid.appendChild(card);
+    });
+  }
 
-    <div class="detail-section">
-      <h4>💡 Why It Matters to You</h4>
-      <p>${law.why_it_matters}</p>
-    </div>
+  // 3. Handle live search filtering
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = allLaws.filter(law => 
+        law.ra_number.toLowerCase().includes(query) ||
+        law.plain_title.toLowerCase().includes(query) ||
+        law.official_title.toLowerCase().includes(query) ||
+        law.tldr_summary.toLowerCase().includes(query) ||
+        law.category.toLowerCase().includes(query)
+      );
+      displayLaws(filtered);
+    });
+  }
 
-    <div class="detail-section">
-      <h4>⚖️ Real-World Scenario</h4>
-      <p>${law.example_scenario}</p>
-    </div>
+  // 4. Open Modal with full breakdown & comments
+  function openModal(law) {
+    modalBody.innerHTML = `
+      <span style="color: var(--accent-gold); font-weight: 600; font-size: 0.9rem;">${law.category} (${law.year})</span>
+      <h2>${law.ra_number}</h2>
+      <p class="official-title" style="color: var(--text-muted); font-style: italic; margin-bottom: 20px;">${law.official_title}</p>
+      
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Quick Summary (TL;DR)</h4>
+        <p style="color: var(--text-main);">${law.tldr_summary}</p>
+      </div>
 
-    <div class="detail-section">
-      <h4>🚨 Penalties & Violations</h4>
-      <p>${law.penalties}</p>
-    </div>
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Full Simplified Breakdown</h4>
+        <p style="color: var(--text-main);">${law.full_breakdown}</p>
+      </div>
 
-    <div class="detail-section">
-      <h4>👥 Who Is Affected</h4>
-      <p>${law.target_audience}</p>
-    </div>
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Why It Matters</h4>
+        <p style="color: var(--text-main);">${law.why_it_matters}</p>
+      </div>
 
-    <div class="detail-section">
-      <h4>🔗 Official Government Text</h4>
-      <a href="${law.source_url}" target="_blank" rel="noopener">Read Full Official Gazette Text</a>
-    </div>
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Example Scenario</h4>
+        <p style="color: var(--text-main);">${law.example_scenario}</p>
+      </div>
 
-    <hr/>
-    <div class="comment-section">
-      <h4>💬 Community Insights & Tips (${law.user_notes.length})</h4>
-      <div id="commentList">
-        ${law.user_notes.length ? law.user_notes.map(c => `
-          <div class="comment-bubble"><strong>${c.user_name}:</strong> ${c.comment}</div>
-        `).join("") : "<p class='empty-note'>No tips added yet. Be the first!</p>"}
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Penalties & Violations</h4>
+        <p style="color: var(--text-main);">${law.penalties}</p>
+      </div>
+
+      <div class="detail-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Official Source</h4>
+        <a href="${law.source_url}" target="_blank" style="color: var(--accent-gold); text-decoration: underline;">Read official gazette filing &rarr;</a>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
+
+      <h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
+      <div id="commentsList">
+        ${law.user_notes && law.user_notes.length > 0 
+          ? law.user_notes.map(n => `<div class="comment-bubble"><strong>${n.user_name}:</strong> ${n.comment}</div>`).join('') 
+          : '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>'}
       </div>
 
       <div class="comment-form">
-        <h5>Add Your Knowledge or Practical Tip</h5>
-        <input type="text" id="userNameInput" placeholder="Your Name or Handle" />
-        <textarea id="userCommentInput" rows="2" placeholder="Add a clarification, practical tip, or note..."></textarea>
-        <button onclick="submitComment()">Post Knowledge</button>
+        <h4 style="color: var(--text-main); font-size: 1rem; margin-bottom: 10px;">Add a Note or Tip</h4>
+        <input type="text" id="userNameInput" placeholder="Your Name (e.g., Maria S.)">
+        <textarea id="userCommentInput" placeholder="Share a practical tip or explanation..." rows="3"></textarea>
+        <button id="submitCommentBtn">Post Note</button>
       </div>
-    </div>
-  `;
-  
-  document.getElementById("lawModal").classList.remove("hidden");
-}
+    `;
 
-async function submitComment() {
-  const name = document.getElementById("userNameInput").value.trim();
-  const comment = document.getElementById("userCommentInput").value.trim();
-  
-  if (!name || !comment) return alert("Please fill out both fields.");
+    modal.classList.remove("hidden");
 
-  const res = await fetch(`${API_URL}/laws/${currentLawId}/comments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_name: name, comment: comment })
+    // Handle adding a local comment (pre-Supabase step)
+    const submitBtn = document.getElementById("submitCommentBtn");
+    submitBtn.addEventListener("click", () => {
+      const nameInput = document.getElementById("userNameInput").value;
+      const commentInput = document.getElementById("userCommentInput").value;
+
+      if (nameInput && commentInput) {
+        const commentsList = document.getElementById("commentsList");
+        if (commentsList.innerHTML.includes("No notes yet")) {
+          commentsList.innerHTML = "";
+        }
+        const newBubble = document.createElement("div");
+        newBubble.className = "comment-bubble";
+        newBubble.innerHTML = `<strong>${nameInput}:</strong> ${commentInput}`;
+        commentsList.appendChild(newBubble);
+
+        // Clear inputs
+        document.getElementById("userNameInput").value = "";
+        document.getElementById("userCommentInput").value = "";
+      }
+    });
+  }
+
+  // 5. Close Modal logic
+  if (closeModal) {
+    closeModal.addEventListener("click", () => modal.classList.add("hidden"));
+  }
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.add("hidden");
   });
 
-  if (res.ok) {
-    openLawDetail(currentLawId); // Refresh modal view
-  }
-}
-
-// Close Modal
-document.getElementById("closeModal").onclick = () => {
-  document.getElementById("lawModal").classList.add("hidden");
-};
-
-// Search listener
-document.getElementById("searchInput").addEventListener("input", (e) => {
-  loadLaws(e.target.value);
+  // Run fetch on load
+  fetchLaws();
 });
-
-// Initial Load
-loadLaws();
