@@ -1,7 +1,18 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
+
+# ==========================================================
+# API KEY AUTHENTICATION
+# ==========================================================
+def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
+    if x_api_key != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key."
+        )
+    return True
 
 # ==========================================================
 # CONFIGURATION
@@ -514,9 +525,10 @@ LAWS_DATABASE = validated_laws
 # ==========================================================
 # ENDPOINTS
 # ==========================================================
-@app.get("/api/v1/laws", response_model=List[Law])
+@app.get("/api/v1/laws", response_model=List[Law], dependencies=[Depends(verify_api_key)])
+@app.get("/api/laws", response_model=List[Law], dependencies=[Depends(verify_api_key)])
 def get_laws(search: Optional[str] = None):
-    """Fetch laws with optional keyword filtering"""
+    """Fetch laws with optional keyword filtering (Protected)"""
     if not search:
         return LAWS_DATABASE
     
@@ -530,17 +542,18 @@ def get_laws(search: Optional[str] = None):
     ]
     return filtered
 
-@app.get("/api/v1/laws/{law_id}", response_model=Law)
+@app.get("/api/v1/laws/{law_id}", response_model=Law, dependencies=[Depends(verify_api_key)])
+@app.get("/api/laws/{law_id}", response_model=Law, dependencies=[Depends(verify_api_key)])
 def get_law_detail(law_id: int):
-    """Fetch single law with full 20 fields"""
+    """Fetch single law detail (Protected)"""
     law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
     if not law:
         raise HTTPException(status_code=404, detail="Law not found")
     return law
 
-@app.post("/api/v1/laws/{law_id}/comments")
+@app.post("/api/v1/laws/{law_id}/comments", dependencies=[Depends(verify_api_key)])
 def add_user_comment(law_id: int, payload: CommentSubmission):
-    """Add a user tip or comment to a specific law"""
+    """Add a user tip or comment (Protected)"""
     law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
     if not law:
         raise HTTPException(status_code=404, detail="Law not found")

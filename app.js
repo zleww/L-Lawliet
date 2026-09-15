@@ -209,4 +209,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   fetchLaws();
+
+const API_KEY = "student-api-key-123";
+
+async function fetchLaws() {
+  try {
+    const response = await fetch('/api/v1/laws', {
+      headers: {
+        'x-api-key': API_KEY
+      }
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Fetch error:", error);
+  }
+}
 });
