@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // ==========================================================
+  // 1. API CONFIGURATION & REUSABLE HEADERS (Step 7)
+  // ==========================================================
+  const API_URL = "/api/v1";
+  const API_KEY = "student-api-key-123";
+
+  const FETCH_OPTIONS = {
+    headers: {
+      "x-api-key": API_KEY
+    }
+  };
+
+  // DOM Elements
   const lawsGrid = document.getElementById("lawsGrid");
   const searchInput = document.getElementById("searchInput");
   const searchSubmitBtn = document.getElementById("searchSubmitBtn");
@@ -10,25 +23,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let allLaws = [];
 
-  // 1. Fetch laws from your FastAPI backend
+  // ==========================================================
+  // 2. FETCH LAWS (AUTHENTICATED)
+  // ==========================================================
   async function fetchLaws() {
     try {
-      const response = await fetch('/api/v1/laws')
-      allLaws = await response.json();
-      
+      const response = await fetch(`${API_URL}/laws`, FETCH_OPTIONS);
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Handles both { count, laws: [...] } and direct array [...]
+      allLaws = Array.isArray(result) ? result : (result.laws || []);
+
       // Limit to first 5 laws on the home page
       const top5Laws = allLaws.slice(0, 5);
       displayLaws(top5Laws);
     } catch (error) {
       console.error("Error fetching laws:", error);
-      lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
+      if (lawsGrid) {
+        lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
+      }
     }
   }
 
-  // 2. Render laws into the grid
+  // ==========================================================
+  // 3. RENDER LAWS INTO GRID
+  // ==========================================================
   function displayLaws(laws) {
+    if (!lawsGrid) return;
     lawsGrid.innerHTML = "";
-    
+
     if (laws.length === 0) {
       lawsGrid.innerHTML = `<p style="color: var(--text-muted);">No laws found matching your search.</p>`;
       return;
@@ -44,17 +71,19 @@ document.addEventListener("DOMContentLoaded", () => {
         <p class="summary" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">${law.tldr_summary}</p>
         <span class="click-more" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: bold;">Click to view full details &rarr;</span>
       `;
-      
+
       card.addEventListener("click", () => openModal(law));
       lawsGrid.appendChild(card);
     });
   }
 
-  // 3. Handle live search filtering & search submission button
+  // ==========================================================
+  // 4. LIVE SEARCH & SUBMIT BUTTON REDIRECT
+  // ==========================================================
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const query = e.target.value.toLowerCase();
-      const filtered = allLaws.slice(0, 5).filter(law => 
+      const filtered = allLaws.slice(0, 5).filter(law =>
         law.ra_number.toLowerCase().includes(query) ||
         law.plain_title.toLowerCase().includes(query) ||
         law.official_title.toLowerCase().includes(query) ||
@@ -67,9 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchSubmitBtn) {
     searchSubmitBtn.addEventListener("click", () => {
-      const query = searchInput.value.trim();
+      const query = searchInput ? searchInput.value.trim() : "";
       if (query) {
-        // Redirect to browse page with search query parameter
         window.location.href = `browse.html?search=${encodeURIComponent(query)}`;
       } else {
         window.location.href = `browse.html`;
@@ -77,7 +105,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 4. Handle Popular Tags Click -> Redirect to Browse Page with filter query
+  // ==========================================================
+  // 5. POPULAR TAGS & FEATURED LAW "READ MORE"
+  // ==========================================================
   popularTags.forEach(tag => {
     tag.style.cursor = "pointer";
     tag.addEventListener("click", () => {
@@ -86,10 +116,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 5. Handle Featured Law "Read More" Button -> Open modal for RA 10175 (ID 1)
   if (featuredReadMoreBtn) {
     featuredReadMoreBtn.addEventListener("click", () => {
-      // Find RA 10175 from our loaded dataset
       const ra10175 = allLaws.find(law => law.ra_number === "RA 10175") || allLaws[0];
       if (ra10175) {
         openModal(ra10175);
@@ -97,15 +125,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-// Move API_KEY declaration ABOVE any function calls
-  const API_KEY = "student-api-key-123";
-
-  // 6. Open Modal with full breakdown & comments (All 20 Identifiers)
+  // ==========================================================
+  // 6. MODAL DEEP DIVE (ALL 20 IDENTIFIERS)
+  // ==========================================================
   function openModal(law) {
     if (!law.user_notes) law.user_notes = [];
-    
-    const formattedFine = law.min_fine_php 
-      ? `₱${Number(law.min_fine_php).toLocaleString()}` 
+
+    const formattedFine = law.min_fine_php
+      ? `₱${Number(law.min_fine_php).toLocaleString()}`
       : "None / Discretionary";
 
     modalBody.innerHTML = `
@@ -207,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modal.classList.remove("hidden");
 
-    // Reattach delete event listeners
+    // Local comment deletion listener
     modalBody.querySelectorAll(".delete-comment-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         const bubble = e.target.closest(".comment-bubble");
@@ -217,53 +244,47 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // Reattach comment submit handler
+    // Add comment listener
     const submitBtn = document.getElementById("submitCommentBtn");
-    submitBtn.addEventListener("click", () => {
+    submitBtn.addEventListener("click", async () => {
       const nameInput = document.getElementById("userNameInput").value.trim();
       const commentInput = document.getElementById("userCommentInput").value.trim();
 
       if (nameInput && commentInput) {
+        try {
+          await fetch(`${API_URL}/laws/${law.id}/comments`, {
+            method: "POST",
+            headers: {
+              ...FETCH_OPTIONS.headers,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ user_name: nameInput, comment: commentInput })
+          });
+        } catch (err) {
+          console.error("Failed to post comment to backend:", err);
+        }
+
         law.user_notes.push({ user_name: nameInput, comment: commentInput });
         openModal(law);
       }
     });
   }
 
+  // ==========================================================
+  // 7. MODAL CLOSE LISTENERS
+  // ==========================================================
   if (closeModal) {
     closeModal.addEventListener("click", () => modal.classList.add("hidden"));
   }
   window.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.add("hidden");
   });
-
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.classList.contains("hidden")) {
       modal.classList.add("hidden");
     }
   });
 
-  // Fetch implementation
-  async function fetchLaws() {
-    try {
-      const response = await fetch('/api/v1/laws', {
-        headers: {
-          'x-api-key': API_KEY
-        }
-      });
-      const result = await response.json();
-      allLaws = Array.isArray(result) ? result : (result.laws || []);
-      
-      const top5Laws = allLaws.slice(0, 5);
-      displayLaws(top5Laws);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      if (lawsGrid) {
-        lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
-      }
-    }
-  }
-
-  // Execute fetch after everything is defined
+  // Initial load
   fetchLaws();
 });
