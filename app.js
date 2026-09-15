@@ -97,14 +97,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+// Move API_KEY declaration ABOVE any function calls
+  const API_KEY = "student-api-key-123";
+
   // 6. Open Modal with full breakdown & comments (All 20 Identifiers)
   function openModal(law) {
+    if (!law.user_notes) law.user_notes = [];
+    
     const formattedFine = law.min_fine_php 
       ? `₱${Number(law.min_fine_php).toLocaleString()}` 
       : "None / Discretionary";
 
     modalBody.innerHTML = `
-      <!-- Header Meta & Badges (Identifiers: category, year, status, reading_time_minutes, importance_rating) -->
+      <!-- Header Meta & Badges -->
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
         <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
           ${law.category} (${law.year})
@@ -120,13 +125,13 @@ document.addEventListener("DOMContentLoaded", () => {
         </span>
       </div>
 
-      <!-- Titles & ID (Identifiers: id, ra_number, plain_title, official_title) -->
+      <!-- Titles & ID -->
       <h2 style="color: var(--accent-gold); margin-bottom: 4px;">${law.ra_number}: ${law.plain_title}</h2>
       <p class="official-title" style="color: var(--text-muted); font-style: italic; margin-bottom: 20px; font-size: 0.95rem;">
         "${law.official_title}" &bull; <span style="font-style: normal; color: var(--text-muted); font-size: 0.85rem;">System ID #${law.id}</span>
       </p>
 
-      <!-- Key Metadata Panel (Identifiers: enacting_president, total_sections, min_fine_php, target_audience) -->
+      <!-- Key Metadata Panel -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: rgba(6, 13, 20, 0.6); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
         <div>
           <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Enacting President</span>
@@ -146,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>
       
-      <!-- Core Explanations (Identifiers: tldr_summary, full_breakdown, why_it_matters) -->
+      <!-- Core Explanations -->
       <div class="detail-section" style="margin-bottom: 20px;">
         <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Quick Summary (TL;DR)</h4>
         <p style="color: var(--text-main); line-height: 1.6;">${law.tldr_summary}</p>
@@ -162,7 +167,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <p style="color: var(--text-main); line-height: 1.6;">${law.why_it_matters}</p>
       </div>
 
-      <!-- Scenarios, Penalties & Gazette (Identifiers: example_scenario, penalties, source_url) -->
       <div class="detail-section" style="margin-bottom: 20px;">
         <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Example Scenario</h4>
         <p style="color: var(--text-main); line-height: 1.6;">${law.example_scenario}</p>
@@ -183,9 +187,9 @@ document.addEventListener("DOMContentLoaded", () => {
       <!-- Identifier 20: user_notes -->
       <h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
       <div id="commentsList">
-        ${law.user_notes && law.user_notes.length > 0 
-          ? law.user_notes.map((n) => `
-              <div class="comment-bubble" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        ${law.user_notes.length > 0 
+          ? law.user_notes.map((n, i) => `
+              <div class="comment-bubble" data-index="${i}" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <span><strong>${n.user_name}:</strong> ${n.comment}</span>
                 <button class="delete-comment-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-left: 10px;">Delete</button>
               </div>
@@ -203,45 +207,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modal.classList.remove("hidden");
 
+    // Reattach delete event listeners
     modalBody.querySelectorAll(".delete-comment-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         const bubble = e.target.closest(".comment-bubble");
-        bubble.remove();
-        const commentsList = document.getElementById("commentsList");
-        if (commentsList.children.length === 0) {
-          commentsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>';
-        }
+        const idx = Number(bubble.dataset.index);
+        law.user_notes.splice(idx, 1);
+        openModal(law);
       });
     });
 
+    // Reattach comment submit handler
     const submitBtn = document.getElementById("submitCommentBtn");
     submitBtn.addEventListener("click", () => {
-      const nameInput = document.getElementById("userNameInput").value;
-      const commentInput = document.getElementById("userCommentInput").value;
+      const nameInput = document.getElementById("userNameInput").value.trim();
+      const commentInput = document.getElementById("userCommentInput").value.trim();
 
       if (nameInput && commentInput) {
-        const commentsList = document.getElementById("commentsList");
-        if (commentsList.innerHTML.includes("No notes yet")) {
-          commentsList.innerHTML = "";
-        }
-        const newBubble = document.createElement("div");
-        newBubble.className = "comment-bubble";
-        newBubble.style.display = "flex";
-        newBubble.style.justifyContent = "space-between";
-        newBubble.style.alignItems = "center";
-        newBubble.innerHTML = `
-          <span><strong>${nameInput}:</strong> ${commentInput}</span>
-          <button class="delete-comment-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem; font-weight: bold; margin-left: 10px;">Delete</button>
-        `;
-        newBubble.querySelector(".delete-comment-btn").addEventListener("click", () => {
-          newBubble.remove();
-          if (commentsList.children.length === 0) {
-            commentsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>';
-          }
-        });
-        commentsList.appendChild(newBubble);
-        document.getElementById("userNameInput").value = "";
-        document.getElementById("userCommentInput").value = "";
+        law.user_notes.push({ user_name: nameInput, comment: commentInput });
+        openModal(law);
       }
     });
   }
@@ -253,37 +237,33 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === modal) modal.classList.add("hidden");
   });
 
-  // Close Modal on ESC key press
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.classList.contains("hidden")) {
       modal.classList.add("hidden");
     }
   });
 
-  fetchLaws();
-
-const API_KEY = "student-api-key-123";
-
-async function fetchLaws() {
-  try {
-    const response = await fetch('/api/v1/laws', {
-      headers: {
-        'x-api-key': API_KEY
+  // Fetch implementation
+  async function fetchLaws() {
+    try {
+      const response = await fetch('/api/v1/laws', {
+        headers: {
+          'x-api-key': API_KEY
+        }
+      });
+      const result = await response.json();
+      allLaws = Array.isArray(result) ? result : (result.laws || []);
+      
+      const top5Laws = allLaws.slice(0, 5);
+      displayLaws(top5Laws);
+    } catch (error) {
+      console.error("Fetch error:", error);
+      if (lawsGrid) {
+        lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
       }
-    });
-    const result = await response.json();
-    
-    // Handles both { count, laws: [...] } and bare array [...]
-    allLaws = Array.isArray(result) ? result : (result.laws || []);
-    
-    // Display top 5 on the home page
-    const top5Laws = allLaws.slice(0, 5);
-    displayLaws(top5Laws);
-  } catch (error) {
-    console.error("Fetch error:", error);
-    if (lawsGrid) {
-      lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
     }
   }
-}
+
+  // Execute fetch after everything is defined
+  fetchLaws();
 });
