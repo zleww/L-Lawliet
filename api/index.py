@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -526,6 +526,8 @@ LAWS_DATABASE = validated_laws
 # ==========================================================
 # ENDPOINTS
 # ==========================================================
+
+
 # ==========================================================
 # HEALTH CHECK (Public)
 # ==========================================================
@@ -536,6 +538,41 @@ def health_check():
         "service": "L-Lawliet API",
         "version": API_VERSION,
         "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+# ==========================================================
+# SEARCH LAWS (Protected)
+# ==========================================================
+@app.get("/api/v1/laws/search", dependencies=[Depends(verify_api_key)])
+@app.get("/api/laws/search", dependencies=[Depends(verify_api_key)])
+def search_laws(q: str = Query(..., min_length=1, description="Search query string")):
+    q_lower = q.lower()
+    results = []
+
+    for law in LAWS_DATABASE:
+        searchable_text = (
+            f"{law['ra_number']} "
+            f"{law['official_title']} "
+            f"{law['plain_title']} "
+            f"{law['category']} "
+            f"{law['year']} "
+            f"{law['status']} "
+            f"{law['enacting_president']} "
+            f"{law['target_audience']} "
+            f"{law['tldr_summary']} "
+            f"{law['full_breakdown']} "
+            f"{law['why_it_matters']} "
+            f"{law['example_scenario']} "
+            f"{law['penalties']}"
+        ).lower()
+
+        if q_lower in searchable_text:
+            results.append(law)
+
+    return {
+        "query": q,
+        "count": len(results),
+        "results": results
     }
 
 # ==========================================================
