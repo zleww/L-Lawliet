@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
@@ -525,12 +526,30 @@ LAWS_DATABASE = validated_laws
 # ==========================================================
 # ENDPOINTS
 # ==========================================================
-@app.get("/api/v1/laws", response_model=List[Law], dependencies=[Depends(verify_api_key)])
-@app.get("/api/laws", response_model=List[Law], dependencies=[Depends(verify_api_key)])
+# ==========================================================
+# HEALTH CHECK (Public)
+# ==========================================================
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "service": "L-Lawliet API",
+        "version": API_VERSION,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+# ==========================================================
+# GET ALL LAWS (Protected)
+# ==========================================================
+@app.get("/api/v1/laws", dependencies=[Depends(verify_api_key)])
+@app.get("/api/laws", dependencies=[Depends(verify_api_key)])
 def get_laws(search: Optional[str] = None):
     """Fetch laws with optional keyword filtering (Protected)"""
     if not search:
-        return LAWS_DATABASE
+        return {
+            "count": len(LAWS_DATABASE),
+            "laws": LAWS_DATABASE
+        }
     
     query = search.lower()
     filtered = [
@@ -540,24 +559,33 @@ def get_laws(search: Optional[str] = None):
         or query in law["category"].lower()
         or query in law["tldr_summary"].lower()
     ]
-    return filtered
+    return {
+        "count": len(filtered),
+        "laws": filtered
+    }
 
-@app.get("/api/v1/laws/{law_id}", response_model=Law, dependencies=[Depends(verify_api_key)])
-@app.get("/api/laws/{law_id}", response_model=Law, dependencies=[Depends(verify_api_key)])
-def get_law_detail(law_id: int):
+# ==========================================================
+# GET ONE LAW (Protected)
+# ==========================================================
+@app.get("/api/v1/laws/{law_id}", dependencies=[Depends(verify_api_key)])
+@app.get("/api/laws/{law_id}", dependencies=[Depends(verify_api_key)])
+def get_law(law_id: int):
     """Fetch single law detail (Protected)"""
-    law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
-    if not law:
-        raise HTTPException(status_code=404, detail="Law not found")
-    return law
+    for law in LAWS_DATABASE:
+        if law["id"] == law_id:
+            return law
+    raise HTTPException(status_code=404, detail="Law not found.")
 
+# ==========================================================
+# ADD COMMENT (Protected)
+# ==========================================================
 @app.post("/api/v1/laws/{law_id}/comments", dependencies=[Depends(verify_api_key)])
 def add_user_comment(law_id: int, payload: CommentSubmission):
     """Add a user tip or comment (Protected)"""
-    law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
-    if not law:
-        raise HTTPException(status_code=404, detail="Law not found")
-    
-    new_comment = {"user_name": payload.user_name, "comment": payload.comment}
-    law["user_notes"].append(new_comment)
-    return {"message": "Knowledge added successfully!", "comments": law["user_notes"]}
+    for law in LAWS_DATABASE:
+        if law["id"] == law_id:
+            new_comment = {"user_name": payload.user_name, "comment": payload.comment}
+            law["user_notes"].append(new_comment)
+            return {"message": "Knowledge added successfully!", "comments": law["user_notes"]}
+            
+    raise HTTPException(status_code=404, detail="Law not found.")
