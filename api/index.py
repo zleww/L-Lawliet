@@ -5,7 +5,28 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
 # ==========================================================
-# API KEY AUTHENTICATION
+# 1. CONFIGURATION 
+# ==========================================================
+API_KEY = "student-api-key-123"
+API_VERSION = "1.0"
+
+app = FastAPI(
+    title="L-Lawliet API",
+    description="An enterprise-style REST API providing simplified Philippine Republic Acts data.",
+    version=API_VERSION
+)
+
+# Enable CORS for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ==========================================================
+# 2. API KEY AUTHENTICATION DEPENDENCY
 # ==========================================================
 def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
     if x_api_key != API_KEY:
@@ -14,12 +35,6 @@ def verify_api_key(x_api_key: Optional[str] = Header(default=None)):
             detail="Invalid or missing API key."
         )
     return True
-
-# ==========================================================
-# CONFIGURATION
-# ==========================================================
-API_KEY = "student-api-key-123"
-API_VERSION = "1.0"
 
 app = FastAPI(
     title="L-Lawliet API",
