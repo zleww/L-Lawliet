@@ -271,10 +271,19 @@ async function fetchLaws() {
         'x-api-key': API_KEY
       }
     });
-    const data = await response.json();
-    return data;
+    const result = await response.json();
+    
+    // Handles both { count, laws: [...] } and bare array [...]
+    allLaws = Array.isArray(result) ? result : (result.laws || []);
+    
+    // Display top 5 on the home page
+    const top5Laws = allLaws.slice(0, 5);
+    displayLaws(top5Laws);
   } catch (error) {
     console.error("Fetch error:", error);
+    if (lawsGrid) {
+      lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
+    }
   }
 }
 });
