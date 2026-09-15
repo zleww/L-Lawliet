@@ -3,7 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 
-app = FastAPI()
+# CONFIGURATIO
+API_KEY = "student-api-key-123"
+API_VERSION = "1.0"
+
+app = FastAPI(
+    title="L-Lawliet API",
+    description="An enterprise-style REST API providing simplified Philippine Republic Acts data.",
+    version=API_VERSION
+)
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -343,7 +351,7 @@ LAWS_DATABASE = [
     }
 ]
 
-@app.get("/api/laws")
+@app.get("/api/v1/laws")
 def get_laws(search: Optional[str] = None):
     """Fetch laws with optional keyword filtering"""
     if not search:
@@ -359,7 +367,7 @@ def get_laws(search: Optional[str] = None):
     ]
     return filtered
 
-@app.get("/api/laws/{law_id}")
+@app.get("/api/v1/laws/{law_id}")
 def get_law_detail(law_id: int):
     """Fetch single law with full 14 fields"""
     law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
@@ -367,7 +375,7 @@ def get_law_detail(law_id: int):
         raise HTTPException(status_code=404, detail="Law not found")
     return law
 
-@app.post("/api/laws/{law_id}/comments")
+@app.post("/api/v1/laws/{law_id}/comments")
 def add_user_comment(law_id: int, payload: CommentSubmission):
     """Add a user tip or comment to a specific law"""
     law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
