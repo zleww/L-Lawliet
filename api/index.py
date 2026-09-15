@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
 
-# CONFIGURATIO
+# ==========================================================
+# CONFIGURATION
+# ==========================================================
 API_KEY = "student-api-key-123"
 API_VERSION = "1.0"
 
@@ -22,12 +24,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Schema for new user comment
+# ==========================================================
+# DATA MODELS
+# ==========================================================
 class CommentSubmission(BaseModel):
-    user_name: str
-    comment: str
-    
+    user_name: str = Field(min_length=1, max_length=100)
+    comment: str = Field(min_length=1, max_length=1000)
 
+class Law(BaseModel):
+    id: int = Field(gt=0, description="Unique primary identifier")
+    ra_number: str = Field(min_length=3, max_length=20, description="e.g. RA 10175")
+    official_title: str = Field(min_length=3, max_length=300)
+    plain_title: str = Field(min_length=3, max_length=200)
+    category: Literal[
+        "Technology & Crime",
+        "Finance & Taxes",
+        "Governance & Business",
+        "Social & Welfare",
+        "Environment"
+    ]
+    year: int = Field(ge=1900, le=2100, description="Year enacted, after 1900")
+    status: Literal["Active", "Amended", "Repealed"] = "Active"
+    reading_time_minutes: int = Field(ge=1, le=120, description="Reading time in minutes")
+    importance_rating: int = Field(ge=1, le=5, description="Impact score 1 to 5")
+    tldr_summary: str = Field(min_length=10, max_length=500)
+    full_breakdown: str = Field(min_length=10, max_length=2000)
+    why_it_matters: str = Field(min_length=5, max_length=1000)
+    example_scenario: str = Field(min_length=10, max_length=1000)
+    penalties: str = Field(min_length=5, max_length=1000)
+    min_fine_php: int = Field(ge=0, description="Minimum penalty fine in PHP")
+    total_sections: int = Field(gt=0, le=1000, description="Section count in bill")
+    enacting_president: str = Field(min_length=3, max_length=100)
+    target_audience: str = Field(min_length=3, max_length=300)
+    source_url: str = Field(min_length=10, max_length=500)
+    user_notes: List[CommentSubmission] = Field(default_factory=list)
+
+# ==========================================================
+# 20 LAWS DATASET
+# ==========================================================
 LAWS_DATABASE = [
     {
         "id": 1,
@@ -471,7 +505,16 @@ LAWS_DATABASE = [
     }
 ]
 
-@app.get("/api/v1/laws")
+# ==========================================================
+# VALIDATE STARTING DATASET ON LAUNCH
+# ==========================================================
+validated_laws = [Law(**law).model_dump() for law in LAWS_DATABASE]
+LAWS_DATABASE = validated_laws
+
+# ==========================================================
+# ENDPOINTS
+# ==========================================================
+@app.get("/api/v1/laws", response_model=List[Law])
 def get_laws(search: Optional[str] = None):
     """Fetch laws with optional keyword filtering"""
     if not search:
@@ -487,9 +530,9 @@ def get_laws(search: Optional[str] = None):
     ]
     return filtered
 
-@app.get("/api/v1/laws/{law_id}")
+@app.get("/api/v1/laws/{law_id}", response_model=Law)
 def get_law_detail(law_id: int):
-    """Fetch single law with full 14 fields"""
+    """Fetch single law with full 20 fields"""
     law = next((l for l in LAWS_DATABASE if l["id"] == law_id), None)
     if not law:
         raise HTTPException(status_code=404, detail="Law not found")
