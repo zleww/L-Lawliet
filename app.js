@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Fetch laws from your FastAPI backend
   async function fetchLaws() {
     try {
-      const response = await fetch('/api/laws');
+      const response = await fetch('/api/v1/laws')
       allLaws = await response.json();
       
       // Limit to first 5 laws on the home page

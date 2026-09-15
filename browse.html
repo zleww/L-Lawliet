@@ -87,7 +87,7 @@
       // 2. Fetch laws from FastAPI backend
       async function fetchLaws() {
         try {
-          const response = await fetch('/api/laws');
+          const response = await fetch('/api/v1/laws')
           allLaws = await response.json();
           filterAndDisplay();
         } catch (error) {
