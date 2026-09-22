@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcards | JurisCards</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy: #071525;
+      --navy-light: #0c2035;
+      --navy-card: #0e263d;
+      --gold: #c9a45c;
+      --gold-light: #e0c27d;
+      --white: #f7f5ef;
+      --muted: #aeb8c4;
+      --border: rgba(201, 164, 92, 0.25);
+      --paper: #f5f2eb;
+      --ink: #142333;
+      --line: #dedbd3;
+      --success: #2e7d32;
+      --warning: #c25e00;
+      --neutral: #59636d;
+      --accent-red: #c53030;
+      --accent-red-hover: #9b2c2c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "DM Sans", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .container {
+      width: min(1180px, 92%);
+      margin: auto;
+    }
+
+    /* HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      height: 76px;
+      z-index: 100;
+      background: rgba(7, 21, 37, 0.98);
+      backdrop-filter: blur(15px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .navbar {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Playfair Display", serif;
+      font-size: 25px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .logo-symbol {
+      color: var(--gold);
+      font-size: 27px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+
+    .nav-links a {
+      position: relative;
+      font-size: 14px;
+      color: #cbd3dc;
+      transition: 0.25s ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--gold-light);
+    }
+
+    .nav-links a.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -9px;
+      width: 100%;
+      height: 2px;
+      background: var(--gold);
+    }
+
+    .header-btn {
+      padding: 9px 18px;
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      transition: 0.25s ease;
+    }
+
+    .header-btn:hover {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    /* MAIN */
+    main {
+      flex: 1;
+      padding: 35px 0 70px;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .eyebrow {
+      color: #927438;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(32px, 4vw, 42px);
+      margin-bottom: 6px;
+    }
+
+    /* PROGRESS & LEVEL MONITOR PANEL */
+    .level-panel {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+
+    .level-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .level-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .level-badge {
+      background: var(--navy);
+      color: var(--gold-light);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+    }
+
+    .level-name {
+      font-family: "Playfair Display", serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .level-counts {
+      font-size: 12.5px;
+      color: var(--neutral);
+    }
+
+    .level-track {
+      height: 7px;
+      width: 100%;
+      background: #ece8df;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .level-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #927438, var(--gold));
+      transition: width 0.4s ease;
+    }
+
+    /* CONTROLS BAR */
+    .top-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 25px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 11px 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--gold);
+    }
+
+    .action-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 4px;
+      transition: 0.2s ease;
+      color: var(--ink);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gold);
+      color: #927438;
+    }
+
+    .btn-create {
+      background: var(--navy);
+      color: var(--white);
+      border: 1px solid var(--navy);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      transition: 0.2s ease;
+    }
+
+    .btn-create:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
+    }
+
+    /* SUBJECT PILLS */
+    .subject-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      padding: 6px 14px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #59636d;
+      transition: 0.2s ease;
+    }
+
+    .filter-pill.active,
+    .filter-pill:hover {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: var(--white);
+    }
+
+    /* CARD STATS BAR */
+    .deck-stats {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #68717b;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-status.unreviewed {
+      background: #eceff1;
+      color: var(--neutral);
+      border: 1px solid #cfd8dc;
+    }
+
+    .badge-status.mastered {
+      background: #e8f5e9;
+      color: var(--success);
+      border: 1px solid #c8e6c9;
+    }
+
+    .badge-status.review {
+      background: #fff3e0;
+      color: var(--warning);
+      border: 1px solid #ffe0b2;
+    }
+
+    /* 3D PERSPECTIVE STAGE */
+    .stage-wrapper {
+      max-width: 740px;
+      margin: 0 auto 25px;
+      perspective: 1200px;
+    }
+
+    .flashcard {
+      position: relative;
+      width: 100%;
+      height: 420px;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .flashcard.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      padding: 38px 40px;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid #dedad0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    /* FRONT: Light Paper */
+    .card-front {
+      background: #ffffff;
+      color: var(--ink);
+    }
+
+    .card-front::after {
+      content: "§";
+      position: absolute;
+      right: 25px;
+      bottom: -15px;
+      font-family: "Playfair Display", serif;
+      font-size: 160px;
+      color: rgba(201, 164, 92, 0.08);
+      pointer-events: none;
+    }
+
+    .card-meta-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-meta-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-category {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #927438;
+      font-weight: 700;
+    }
+
+    .btn-delete-card {
+      background: transparent;
+      border: 1px solid var(--accent-red);
+      color: var(--accent-red);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 3px;
+      transition: 0.2s ease;
+    }
+
+    .btn-delete-card:hover {
+      background: var(--accent-red);
+      color: #ffffff;
+    }
+
+    .card-center {
+      text-align: center;
+      margin: auto 0;
+    }
+
+    .card-center h2 {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(24px, 3.2vw, 34px);
+      margin-bottom: 12px;
+      color: var(--navy);
+    }
+
+    .card-center p {
+      color: #616c77;
+      font-size: 15px;
+      font-style: italic;
+    }
+
+    .flip-reminder {
+      text-align: center;
+      font-size: 11px;
+      color: #8c97a4;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* BACK: Navy Blue */
+    .card-back {
+      background: var(--navy);
+      color: var(--white);
+      border-color: var(--border);
+      transform: rotateY(180deg);
+    }
+
+    .back-scroll-body {
+      margin: auto 0;
+      max-height: 250px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .back-item {
+      margin-bottom: 14px;
+    }
+
+    .back-item strong {
+      display: block;
+      color: var(--gold);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    /* RED HIGHLIGHT FOR ANSWER */
+    .back-item.answer-item strong {
+      color: var(--accent-red);
+      font-weight: 700;
+    }
+
+    .back-item p {
+      font-size: 13.5px;
+      color: #d6dfe8;
+      line-height: 1.5;
+    }
+
+    /* BOTTOM CONTROLS */
+    .bottom-bar {
+      max-width: 740px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .progress-actions {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .btn-action-review {
+      padding: 10px 22px;
+      border: 1px solid #d5904d;
+      background: #fff8f0;
+      color: var(--warning);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      transition: 0.2s ease;
+    }
+
+    .btn-action-review:hover {
+      background: #fedbb2;
+    }
+
+    .btn-action-gotit {
+      padding: 10px 22px;
+      border: 1px solid #63a869;
+      background: #f1f8f3;
+      color: var(--success);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      transition: 0.2s ease;
+    }
+
+    .btn-action-gotit:hover {
+      background: #c3e6c8;
+    }
+
+    .nav-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-btn {
+      padding: 11px 24px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      transition: 0.2s ease;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      border-color: var(--gold);
+      color: #927438;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-flip-primary {
+      padding: 11px 32px;
+      background: var(--navy);
+      color: var(--white);
+      border: 1px solid var(--navy);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      transition: 0.2s ease;
+    }
+
+    .btn-flip-primary:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--navy);
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 21, 37, 0.85);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: #fff;
+      width: 100%;
+      max-width: 540px;
+      border-radius: 6px;
+      padding: 30px;
+      border: 1px solid var(--line);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 24px;
+    }
+
+    .close-modal-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #7b858d;
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #59636d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--gold);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 30px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: #050f1b;
+      color: #778493;
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: "Playfair Display", serif;
+      font-size: 20px;
+      color: var(--white);
+    }
+
+    .footer-logo span {
+      color: var(--gold);
+    }
+
+    .copyright {
+      font-size: 12px;
+    }
+
+    @media (max-width: 700px) {
+      .flashcard { height: 480px; }
+      .card-face { padding: 26px; }
+      .nav-links { display: none; }
+      .footer-content { flex-direction: column; gap: 10px; }
+      .nav-actions { flex-direction: column; gap: 10px; }
+      .nav-actions button { width: 100%; }
+      .level-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container navbar">
+      <a href="index.html" class="logo">
+        <span class="logo-symbol">⚖</span>
+        JurisCards
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="flashcard.html" class="active">Flashcard</a>
+        <a href="review.html">Review</a>
+      </nav>
+
+      <a href="start-review.html" class="header-btn">Start Studying</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      
+      <div class="page-title">
+        <div class="eyebrow">Philippine Jurisprudence &amp; Statutes</div>
+        <h1>Study &amp; Active Recall</h1>
+      </div>
+
+      <!-- PROGRESS LEVEL MONITOR -->
+      <section class="level-panel">
+        <div class="level-header">
+          <div class="level-title-group">
+            <span class="level-badge" id="levelTierBadge">Level 1</span>
+            <span class="level-name" id="levelName">Novice Reader</span>
+          </div>
+          <div class="level-counts" id="levelStatusCounts">
+            Mastered: 0 | Needs Review: 0 | Remaining: 20
+          </div>
+        </div>
+        <div class="level-track">
+          <div class="level-bar" id="levelProgressBar"></div>
+        </div>
+      </section>
+
+      <!-- CONTROLS & SEARCH BAR -->
+      <section class="top-controls">
+        <div class="search-row">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by RA number, title, or topic (e.g., Cybercrime, TRAIN, Bawal Bastos)...">
+          </div>
+
+          <div class="action-group">
+            <button class="btn-secondary" id="shuffleBtn">Shuffle</button>
+            <button class="btn-secondary" id="myCardsBtn">My Cards (0)</button>
+            <button class="btn-create" id="openCreateModalBtn">+ Create Flashcard</button>
+          </div>
+        </div>
+
+        <!-- SUBJECT FILTER PILLS -->
+        <div class="subject-filters" id="subjectFilters">
+          <button class="filter-pill active" data-subject="All">All Subjects</button>
+          <button class="filter-pill" data-subject="Technology & Crime">Tech & Crime</button>
+          <button class="filter-pill" data-subject="Finance & Taxes">Finance & Taxes</button>
+          <button class="filter-pill" data-subject="Governance & Business">Governance & Business</button>
+          <button class="filter-pill" data-subject="Social & Welfare">Social & Welfare</button>
+          <button class="filter-pill" data-subject="Environment">Environment</button>
+        </div>
+      </section>
+
+      <!-- CARD METRICS STATS -->
+      <section class="deck-stats">
+        <div id="deckCounter">Card 1 of 20</div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span id="masteryMetric">Mastery: 0%</span>
+          <span id="cardStatusBadge" class="badge-status unreviewed">Unreviewed</span>
+        </div>
+      </section>
+
+      <!-- 3D FLIP CARD STAGE -->
+      <div class="stage-wrapper">
+        <div class="flashcard" id="flashcard">
+
+          <!-- FRONT: QUESTION / STATUTE -->
+          <div class="card-face card-front">
+            <div class="card-meta-top">
+              <span class="card-category" id="frontCategory">Public Law</span>
+              <div class="card-meta-right">
+                <span style="font-size: 12px; color: #8c97a4;" id="frontYear">Year</span>
+                <button class="btn-delete-card" id="deleteFrontBtn" style="display:none;" title="Delete custom card">Delete</button>
+              </div>
+            </div>
+
+            <div class="card-center">
+              <h2 id="frontQuestion">Loading Question...</h2>
+              <p id="frontSubtitle">Official statute identifier</p>
+            </div>
+
+            <div class="flip-reminder">[ Click or Press Space to Reveal Answer ]</div>
+          </div>
+
+          <!-- BACK: ANSWER / ELEMENTS / PENALTIES -->
+          <div class="card-face card-back">
+            <div class="card-meta-top">
+              <span class="card-category" style="color: var(--gold-light);" id="backId">RA ----</span>
+              <div class="card-meta-right">
+                <span style="font-size: 12px; color: var(--muted);" id="backSource">Source</span>
+                <button class="btn-delete-card" id="deleteBackBtn" style="display:none;" title="Delete custom card">Delete</button>
+              </div>
+            </div>
+
+            <div class="back-scroll-body">
+              <div class="back-item answer-item">
+                <strong>Answer &amp; Statutory Rule</strong>
+                <p id="backAnswer">Detailed statutory answer.</p>
+              </div>
+              <div class="back-item">
+                <strong>Scenario Application</strong>
+                <p id="backScenario">Example scenario application.</p>
+              </div>
+              <div class="back-item">
+                <strong>Penalties &amp; Liabilities</strong>
+                <p id="backPenalties">Penalties and enforcement breakdown.</p>
+              </div>
+            </div>
+
+            <div class="flip-reminder" style="color: var(--muted);">[ Click Card to Flip Back ]</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PROGRESS MARKING & NAVIGATION -->
+      <div class="bottom-bar">
+        <div class="progress-actions">
+          <button class="btn-action-review" id="markReviewBtn">Needs Review</button>
+          <button class="btn-action-gotit" id="markGotItBtn">Got It (Mastered)</button>
+        </div>
+
+        <div class="nav-actions">
+          <button class="nav-btn" id="prevBtn" disabled>&larr; Previous</button>
+          <button class="btn-flip-primary" id="flipBtn">Flip Card</button>
+          <button class="nav-btn" id="nextBtn">Next &rarr;</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- CREATE FLASHCARD MODAL -->
+  <div class="modal-overlay hidden" id="createModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Create Custom Card</h2>
+        <button class="close-modal-btn" id="closeModalBtn">&times;</button>
+      </div>
+
+      <form id="createCardForm">
+        <div class="form-group">
+          <label for="newSubject">Subject / Category</label>
+          <select id="newSubject" required>
+            <option value="Technology & Crime">Technology & Crime</option>
+            <option value="Finance & Taxes">Finance & Taxes</option>
+            <option value="Governance & Business">Governance & Business</option>
+            <option value="Social & Welfare">Social & Welfare</option>
+            <option value="Environment">Environment</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="newQuestion">Question / Legal Issue</label>
+          <input type="text" id="newQuestion" placeholder="e.g. What is the penalty for online libel?" required>
+        </div>
+
+        <div class="form-group">
+          <label for="newAnswer">Answer / Statutory Rule</label>
+          <textarea id="newAnswer" rows="3" placeholder="Provide the legal explanation or doctrine..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="newSource">Statutory Source / RA Reference</label>
+          <input type="text" id="newSource" placeholder="e.g. RA 10175, Sec. 4(c)(4)" required>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn-create">Save Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-logo"><span>§</span> JurisCards</div>
+      <div class="copyright">&copy; 2026 JurisCards. Philippine Law Study Platform.</div>
+    </div>
+  </footer>
+
+  <script>
+    const API_URL = "/api/v1";
+    const API_KEY = "student-api-key-123";
+
+    // 20 STATUTORY PHILIPPINE LAW FLASHCARDS
+    const INITIAL_DECK = [
+      {
+        id: 1,
+        ra_number: "RA 10175",
+        official_title: "Cybercrime Prevention Act of 2012",
+        plain_title: "Online Safety & Anti-Cybercrime Law",
+        category: "Technology & Crime",
+        year: 2012,
+        question: "What actions constitute cybercrime, and how does online defamation differ from traditional print libel?",
+        answer: "RA 10175 penalizes unauthorized access, identity theft, child pornography, and online libel. Online libel carries one degree higher penalties than traditional libel under Article 355 of the Revised Penal Code.",
+        scenario: "Hacking an email account or posting defamatory accusations on social media.",
+        penalties: "Prision mayor (6 to 12 years imprisonment) and fines ranging from PHP 200,000 to millions.",
+        source: "RA 10175 / Official Gazette",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 2,
+        ra_number: "RA 10963",
+        official_title: "Tax Reform for Acceleration and Inclusion (TRAIN) Act",
+        plain_title: "Lower Income Tax & Excise Tax Rules",
+        category: "Finance & Taxes",
+        year: 2017,
+        question: "Who is exempt from personal income tax under the TRAIN Law, and how is the shortfall covered?",
+        answer: "Individuals earning an annual taxable income of PHP 250,000 or below are subject to 0% personal income tax. Lost revenues are recouped through higher excise taxes on fuel, automobiles, and sugar-sweetened beverages.",
+        scenario: "An employee earning PHP 20,000 per month has zero income tax withheld from their paycheck.",
+        penalties: "BIR surcharges, 12% to 20% annual delinquency interest, and tax evasion charges.",
+        source: "RA 10963 / Bureau of Internal Revenue",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 3,
+        ra_number: "RA 11032",
+        official_title: "Ease of Doing Business and Efficient Government Service Delivery Act of 2018",
+        plain_title: "Anti-Red Tape & Swift Processing Law",
+        category: "Governance & Business",
+        year: 2018,
+        question: "What are the mandatory processing time limits (3-7-20 rule) for frontline government agencies?",
+        answer: "Agencies must process simple transactions within 3 working days, complex transactions within 7 working days, and highly technical transactions within 20 working days.",
+        scenario: "A barangay clearance cannot take two weeks; it must be acted upon within 3 working days.",
+        penalties: "1st offense: 6-month suspension. 2nd offense: Dismissal, perpetual disqualification, and fines up to PHP 2,000,000.",
+        source: "RA 11032 / ARTA Guidelines",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 4,
+        ra_number: "RA 11313",
+        official_title: "Safe Spaces Act (Bawal Bastos Law)",
+        plain_title: "Anti-Catcalling & Gender Harassment Law",
+        category: "Social & Welfare",
+        year: 2019,
+        question: "What forms of conduct are penalized under the Safe Spaces Act in public streets and online?",
+        answer: "Catcalling, wolf-whistling, lewd remarks, persistent uninvited sexual jokes, cyber-flashing, and public masturbation are penalized across public streets, private establishments, and online channels.",
+        scenario: "Yelling sexually suggestive remarks at a pedestrian walking past a street corner.",
+        penalties: "Community service, mandatory gender sensitivity seminars, and fines up to PHP 500,000 with arresto mayor.",
+        source: "RA 11313 / Philippine Commission on Women",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 5,
+        ra_number: "RA 9994",
+        official_title: "Expanded Senior Citizens Act of 2010",
+        plain_title: "Senior Citizens Benefits & 20% Discount Law",
+        category: "Social & Welfare",
+        year: 2010,
+        question: "What primary economic privileges are granted to Filipino citizens aged 60 and above?",
+        answer: "A 20% discount and VAT exemption on medicine purchases, doctor fees, public transportation, hotels, and dine-in restaurant meals upon presentation of a Senior ID.",
+        scenario: "Presenting a Senior ID at a pharmacy for prescription hypertension medicine to receive 20% off plus VAT exemption.",
+        penalties: "Fines of PHP 50,000 to PHP 200,000 and jail time of 2 to 6 years for business owners refusing the discount.",
+        source: "RA 9994 / DSWD",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 6,
+        ra_number: "RA 9165",
+        official_title: "Comprehensive Dangerous Drugs Act of 2002",
+        plain_title: "Anti-Illegal Drugs Law",
+        category: "Social & Welfare",
+        year: 2002,
+        question: "What procedural rule under Section 21 is critical for validating the chain of custody in drug seizures?",
+        answer: "Physical inventory and photographing of confiscated drugs must immediately occur in the presence of the accused, an elected official, a DOJ representative, and the media.",
+        scenario: "Failure to follow chain-of-custody protocols during an arrest can lead to acquittal due to compromised corpus delicti.",
+        penalties: "Life imprisonment (reclusion perpetua) and fines ranging from PHP 500,000 to PHP 10,000,000.",
+        source: "RA 9165, Sec. 21 / PDEA",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 7,
+        ra_number: "RA 10173",
+        official_title: "Data Privacy Act of 2012",
+        plain_title: "Data Privacy & Information Protection Law",
+        category: "Technology & Crime",
+        year: 2012,
+        question: "What criteria make processing personal data lawful, and what are the rights of data subjects?",
+        answer: "Data processing requires explicit consent, statutory authorization, or legitimate business interest. Data subjects hold rights to access, rectification, erasure/blocking, and damages.",
+        scenario: "A lending app harvesting and contacting an individual's entire phone address book without explicit permission.",
+        penalties: "Imprisonment from 1 to 7 years and fines ranging from PHP 500,000 to PHP 5,000,000.",
+        source: "RA 10173 / National Privacy Commission",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 8,
+        ra_number: "RA 10354",
+        official_title: "The Responsible Parenthood and Reproductive Health Act of 2012",
+        plain_title: "RH & Family Planning Law",
+        category: "Social & Welfare",
+        year: 2012,
+        question: "Does RA 10354 legalize abortion, and what maternal care duties are mandated?",
+        answer: "No, abortion remains strictly illegal under the Penal Code. RA 10354 guarantees universal access to medically safe, non-abortifacient modern contraception, maternal care, and sex education.",
+        scenario: "Public health centers providing free birth control counseling and supplies to indigent couples.",
+        penalties: "Imprisonment of 1 to 6 months or fines up to PHP 100,000 for public officials withholding mandated healthcare.",
+        source: "RA 10354 / DOH",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 9,
+        ra_number: "RA 8293",
+        official_title: "Intellectual Property Code of the Philippines",
+        plain_title: "Copyright, Patent & Trademark Code",
+        category: "Governance & Business",
+        year: 1997,
+        question: "When does copyright protection begin, and what acts constitute trademark infringement?",
+        answer: "Copyright exists automatically from the very moment of creation without mandatory registration. Trademark infringement occurs when an unauthorized party uses a confusingly similar mark on related goods.",
+        scenario: "Duplicating a copyrighted architectural blueprint or selling counterfeit footwear bearing a registered trademark logo.",
+        penalties: "Imprisonment of 1 to 9 years and fines ranging from PHP 50,000 to PHP 1,500,000.",
+        source: "RA 8293 / IPOPHL",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 10,
+        ra_number: "RA 9262",
+        official_title: "Anti-Violence Against Women and Their Children Act of 2004",
+        plain_title: "Anti-VAWC Law",
+        category: "Social & Welfare",
+        year: 2004,
+        question: "Can an ex-partner be charged under RA 9262 for economic and psychological abuse?",
+        answer: "Yes. RA 9262 covers present and former intimate partners, spouses, and dating partners who inflict physical, psychological, sexual, or economic abuse (such as deliberate deprivation of financial support).",
+        scenario: "Deliberately withholding living expenses to control, humiliate, and psychologically manipulate a former partner.",
+        penalties: "Prision mayor to reclusion perpetua and mandatory psychological counseling.",
+        source: "RA 9262 / Supreme Court Rules on VAWC",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 11,
+        ra_number: "RA 9501",
+        official_title: "Magna Carta for Micro, Small and Medium Enterprises",
+        plain_title: "MSME Development & Financing Act",
+        category: "Governance & Business",
+        year: 2008,
+        question: "What lending mandate do private and state banking institutions face regarding MSMEs?",
+        answer: "All lending institutions are mandated to allocate at least 8% of their total loan portfolio to micro and small enterprises, and at least 2% to medium enterprises.",
+        scenario: "A startup food manufacturer accessing specialized micro-financing loans without exorbitant collateral demands.",
+        penalties: "Administrative fines imposed by the Bangko Sentral ng Pilipinas (BSP) on non-compliant lending institutions.",
+        source: "RA 9501 / DTI MSME Council",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 12,
+        ra_number: "RA 10627",
+        official_title: "Anti-Bullying Act of 2013",
+        plain_title: "School Anti-Bullying Policies Law",
+        category: "Social & Welfare",
+        year: 2013,
+        question: "What are the administrative obligations of elementary and high schools regarding student bullying?",
+        answer: "All basic education schools must adopt anti-bullying policies, establish clear intervention protocols, maintain student confidentiality, and report incidents to DepEd divisions.",
+        scenario: "A school principal failing to investigate documented, repeated physical harassment among students on campus.",
+        penalties: "Administrative sanctions against school administrators and suspension of school operational permits.",
+        source: "RA 10627 / DepEd Order No. 55",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 13,
+        ra_number: "RA 9003",
+        official_title: "Ecological Solid Waste Management Act of 2000",
+        plain_title: "Garbage Segregation & Recycling Act",
+        category: "Environment",
+        year: 2001,
+        question: "What is the legal mandate regarding waste segregation at source in barangays and households?",
+        answer: "Waste must be segregated at source into biodegradable, recyclable, non-recyclable, and special hazardous waste. Open dump sites are strictly prohibited.",
+        scenario: "Garbage collectors refusing unsorted residential bags or penalizing open burning of yard waste.",
+        penalties: "Fines of PHP 300 to PHP 1,000 or community service (1 to 15 days) for individuals; heavier corporate penalties.",
+        source: "RA 9003 / DENR-EMB",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 14,
+        ra_number: "RA 8749",
+        official_title: "Philippine Clean Air Act of 1999",
+        plain_title: "Clean Air & Anti-Smoke Belching Law",
+        category: "Environment",
+        year: 1999,
+        question: "What emission standards and prohibitions apply to motor vehicles and industrial incinerators?",
+        answer: "Bans municipal waste incineration, mandates vehicular emission testing for registration, and sets ambient air quality standards.",
+        scenario: "Apprehending smoke-belching public utility vehicles emitting carbon monoxide beyond allowable thresholds.",
+        penalties: "Fines up to PHP 6,000 for vehicles and up to PHP 100,000 per day for stationary industrial violators.",
+        source: "RA 8749 / DENR",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 15,
+        ra_number: "RA 9275",
+        official_title: "Philippine Clean Water Act of 2004",
+        plain_title: "Water Quality & Sewage Protection Law",
+        category: "Environment",
+        year: 2004,
+        question: "What permit is required before commercial or industrial wastewater can be discharged into rivers?",
+        answer: "A Wastewater Discharge Permit issued by the DENR is mandatory, verifying that effluent satisfies national water quality criteria before entering bodies of water.",
+        scenario: "A manufacturing plant dumping untreated dye and chemicals into an adjacent river system.",
+        penalties: "Fines of PHP 10,000 to PHP 200,000 per day of continuous violation and mandatory factory closure.",
+        source: "RA 9275 / Pollution Adjudication Board",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 16,
+        ra_number: "RA 11223",
+        official_title: "Universal Health Care Act",
+        plain_title: "Universal PhilHealth Coverage Law",
+        category: "Social & Welfare",
+        year: 2019,
+        question: "How does the Universal Health Care Act categorize PhilHealth members?",
+        answer: "Every Filipino citizen is automatically enrolled in the National Health Insurance Program, categorized into Direct Contributors (employed/paying) and Indirect Contributors (subsidized indigent).",
+        scenario: "An uninsured citizen admitted to an emergency ward accessing PhilHealth catastrophic care benefits automatically.",
+        penalties: "Fines of PHP 5,000 to PHP 50,000 per employee for employers failing to remit monthly contributions.",
+        source: "RA 11223 / PhilHealth",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 17,
+        ra_number: "RA 10931",
+        official_title: "Universal Access to Quality Tertiary Education Act",
+        plain_title: "Free College Tuition Law",
+        category: "Social & Welfare",
+        year: 2017,
+        question: "What institutions are covered by the free college tuition mandate, and what fees are waived?",
+        answer: "All State Universities and Colleges (SUCs), Local Universities and Colleges (LUCs), and state-run technical-vocational institutions provide 100% free tuition and miscellaneous fees.",
+        scenario: "An eligible undergraduate student enrolled in a state university paying zero enrollment and laboratory fees.",
+        penalties: "Administrative sanctions on educational institutions collecting prohibited auxiliary fees.",
+        source: "RA 10931 / CHED",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 18,
+        ra_number: "RA 7394",
+        official_title: "Consumer Act of the Philippines",
+        plain_title: "Consumer Rights & Defective Goods Protection",
+        category: "Governance & Business",
+        year: 1992,
+        question: "What remedies does a consumer possess when purchasing defective merchandise or unfair sales goods?",
+        answer: "Consumers have the right to repair, replacement, or a full cash refund for defective products, protected from misleading deceptive advertisements and 'No Return, No Exchange' store policies.",
+        scenario: "Returning a new device that ceased functioning within 24 hours of purchase for a replacement or refund.",
+        penalties: "Fines ranging from PHP 500 to PHP 20,000 and imprisonment of up to 5 years for deceptive sales practices.",
+        source: "RA 7394 / DTI Fair Trade Enforcement",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 19,
+        ra_number: "RA 9485",
+        official_title: "Anti-Red Tape Act of 2007",
+        plain_title: "Citizen's Charter & Fixer Prevention Law",
+        category: "Governance & Business",
+        year: 2007,
+        question: "What is a Citizen's Charter, and what actions against government 'fixers' are mandated?",
+        answer: "An official posted document detailing processing times, required fees, and steps for public transactions. Fixing (acting as an unauthorized intermediary for money) is strictly criminalized.",
+        scenario: "An individual offering to expedite a government permit application inside or near an office in exchange for cash.",
+        penalties: "Imprisonment of up to 6 years and fines up to PHP 200,000 for fixers and colluding officials.",
+        source: "RA 9485 / Civil Service Commission",
+        userCreated: false,
+        status: "unreviewed"
+      },
+      {
+        id: 20,
+        ra_number: "RA 11469",
+        official_title: "Bayanihan to Heal as One Act",
+        plain_title: "Emergency COVID-19 Response Act",
+        category: "Governance & Business",
+        year: 2020,
+        question: "What emergency measures were authorized to prevent public panic and market price gouging during national crises?",
+        answer: "Authorized emergency social amelioration subsidies (SAP), mandatory grace periods for residential rents, and criminalization of medical hoarders and false panic news creators.",
+        scenario: "Hoarding medical equipment to resell at exorbitant rates during a declared state of national emergency.",
+        penalties: "Imprisonment of 2 months and fines up to PHP 1,000,000.",
+        source: "RA 11469 / Official Gazette",
+        userCreated: false,
+        status: "unreviewed"
+      }
+    ];
+
+    let allCards = [...INITIAL_DECK];
+    let filteredDeck = [...allCards];
+    let currentIndex = 0;
+    let selectedSubject = "All";
+    let showingOnlyUserCards = false;
+
+    // DOM ELEMENTS
+    const flashcard = document.getElementById("flashcard");
+    const flipBtn = document.getElementById("flipBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const myCardsBtn = document.getElementById("myCardsBtn");
+    const openCreateModalBtn = document.getElementById("openCreateModalBtn");
+    const createModal = document.getElementById("createModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const cancelModalBtn = document.getElementById("cancelModalBtn");
+    const createCardForm = document.getElementById("createCardForm");
+    const searchInput = document.getElementById("searchInput");
+    const subjectFilters = document.getElementById("subjectFilters");
+
+    const deckCounter = document.getElementById("deckCounter");
+    const masteryMetric = document.getElementById("masteryMetric");
+    const cardStatusBadge = document.getElementById("cardStatusBadge");
+
+    // PROGRESS LEVEL ELEMENTS
+    const levelTierBadge = document.getElementById("levelTierBadge");
+    const levelName = document.getElementById("levelName");
+    const levelStatusCounts = document.getElementById("levelStatusCounts");
+    const levelProgressBar = document.getElementById("levelProgressBar");
+
+    // CARD LABELS
+    const frontCategory = document.getElementById("frontCategory");
+    const frontYear = document.getElementById("frontYear");
+    const frontQuestion = document.getElementById("frontQuestion");
+    const frontSubtitle = document.getElementById("frontSubtitle");
+    const deleteFrontBtn = document.getElementById("deleteFrontBtn");
+    const deleteBackBtn = document.getElementById("deleteBackBtn");
+
+    const backId = document.getElementById("backId");
+    const backSource = document.getElementById("backSource");
+    const backAnswer = document.getElementById("backAnswer");
+    const backScenario = document.getElementById("backScenario");
+    const backPenalties = document.getElementById("backPenalties");
+
+    const markReviewBtn = document.getElementById("markReviewBtn");
+    const markGotItBtn = document.getElementById("markGotItBtn");
+
+    // BACKEND SYNC
+    async function syncBackendLaws() {
+      try {
+        const response = await fetch(`${API_URL}/laws`, {
+          headers: { "x-api-key": API_KEY }
+        });
+        if (!response.ok) throw new Error("API call failed");
+        const data = await response.json();
+        const laws = Array.isArray(data) ? data : (data.laws || []);
+
+        if (laws.length > 0) {
+          const mappedLaws = laws.map((law, idx) => ({
+            id: law.id || (idx + 1),
+            ra_number: law.ra_number || `RA ${law.id}`,
+            official_title: law.official_title || "Official Act",
+            plain_title: law.plain_title || law.official_title,
+            category: law.category || "General Law",
+            year: law.year || "",
+            question: law.why_it_matters ? `What is the significance and core mandate of ${law.ra_number}?` : (law.plain_title || "What does this statute regulate?"),
+            answer: law.tldr_summary ? `${law.tldr_summary} ${law.full_breakdown ? "— " + law.full_breakdown : ""}` : (law.official_title || "Statutory regulation."),
+            scenario: law.example_scenario || "Refer to statutory court cases.",
+            penalties: law.penalties || (law.min_fine_php ? `Minimum fine: PHP ${Number(law.min_fine_php).toLocaleString()}` : "Statutory penalties apply."),
+            source: law.source_url || `${law.ra_number} Gazette Filing`,
+            userCreated: false,
+            status: "unreviewed"
+          }));
+
+          const stored = localStorage.getItem("juris_custom_cards");
+          const customCards = stored ? JSON.parse(stored) : [];
+          allCards = [...mappedLaws, ...customCards];
+          filterDeck();
+        }
+      } catch (err) {
+        console.warn("Backend API sync unavailable; operating on local dataset.", err);
+      }
+    }
+
+    function loadSavedCards() {
+      const stored = localStorage.getItem("juris_custom_cards");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          allCards = [...INITIAL_DECK, ...parsed];
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      updateMyCardsCount();
+    }
+
+    function updateMyCardsCount() {
+      const userCount = allCards.filter(c => c.userCreated).length;
+      myCardsBtn.innerText = `My Cards (${userCount})`;
+    }
+
+    // LEVEL MONITOR RE-CALCULATION
+    function updateProgressLevel() {
+      if (allCards.length === 0) return;
+
+      const total = allCards.length;
+      const mastered = allCards.filter(c => c.status === "gotit").length;
+      const review = allCards.filter(c => c.status === "review").length;
+      const unreviewed = total - mastered - review;
+
+      const pct = Math.round((mastered / total) * 100);
+      masteryMetric.innerText = `Mastery: ${pct}%`;
+      levelProgressBar.style.width = `${pct}%`;
+      levelStatusCounts.innerText = `Mastered: ${mastered} | Needs Review: ${review} | Remaining: ${unreviewed}`;
+
+      // Level Tiers
+      if (pct >= 85) {
+        levelTierBadge.innerText = "Level 5";
+        levelName.innerText = "Supreme Jurist (Honor Graduate)";
+      } else if (pct >= 60) {
+        levelTierBadge.innerText = "Level 4";
+        levelName.innerText = "Juris Doctor (Senior Reviewee)";
+      } else if (pct >= 25) {
+        levelTierBadge.innerText = "Level 3";
+        levelName.innerText = "Bar Candidate (Intermediate)";
+      } else if (pct > 0) {
+        levelTierBadge.innerText = "Level 2";
+        levelName.innerText = "Legal Apprentice (Beginner)";
+      } else {
+        levelTierBadge.innerText = "Level 1";
+        levelName.innerText = "Novice Reader";
+      }
+    }
+
+    function filterDeck() {
+      const query = searchInput.value.trim().toLowerCase();
+
+      filteredDeck = allCards.filter(card => {
+        const matchesSubject = (selectedSubject === "All") || (card.category === selectedSubject);
+        const matchesUser = !showingOnlyUserCards || card.userCreated;
+        const matchesSearch = !query || 
+          card.ra_number.toLowerCase().includes(query) ||
+          card.plain_title.toLowerCase().includes(query) ||
+          card.official_title.toLowerCase().includes(query) ||
+          card.question.toLowerCase().includes(query) ||
+          card.answer.toLowerCase().includes(query) ||
+          card.category.toLowerCase().includes(query);
+
+        return matchesSubject && matchesUser && matchesSearch;
+      });
+
+      currentIndex = 0;
+      renderCard();
+      updateProgressLevel();
+    }
+
+    function renderCard() {
+      flashcard.classList.remove("flipped");
+
+      if (filteredDeck.length === 0) {
+        frontCategory.innerText = "Empty Deck";
+        frontYear.innerText = "";
+        frontQuestion.innerText = "No flashcards match your filter.";
+        frontSubtitle.innerText = "Try clearing your search or switching subjects.";
+        
+        backId.innerText = "N/A";
+        backSource.innerText = "None";
+        backAnswer.innerText = "No data available.";
+        backScenario.innerText = "N/A";
+        backPenalties.innerText = "N/A";
+
+        deleteFrontBtn.style.display = "none";
+        deleteBackBtn.style.display = "none";
+
+        deckCounter.innerText = "0 of 0";
+        cardStatusBadge.style.display = "none";
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      cardStatusBadge.style.display = "inline-flex";
+      const card = filteredDeck[currentIndex];
+
+      // Front
+      frontCategory.innerText = card.category;
+      frontYear.innerText = card.year ? `Enacted ${card.year}` : (card.userCreated ? "Custom Card" : "");
+      frontQuestion.innerText = card.question;
+      frontSubtitle.innerText = `${card.ra_number} — ${card.plain_title || card.official_title}`;
+
+      // Back
+      backId.innerText = card.ra_number;
+      backSource.innerText = card.source || "Statutory Digest";
+      backAnswer.innerText = card.answer;
+      backScenario.innerText = card.scenario || "Refer to statutory jurisprudence.";
+      backPenalties.innerText = card.penalties || "Standard judicial liabilities apply.";
+
+      // DELETE BUTTON VISIBILITY (Only for user-created cards)
+      if (card.userCreated) {
+        deleteFrontBtn.style.display = "inline-block";
+        deleteBackBtn.style.display = "inline-block";
+      } else {
+        deleteFrontBtn.style.display = "none";
+        deleteBackBtn.style.display = "none";
+      }
+
+      // Status Badge
+      if (card.status === "gotit") {
+        cardStatusBadge.className = "badge-status mastered";
+        cardStatusBadge.innerText = "Mastered";
+      } else if (card.status === "review") {
+        cardStatusBadge.className = "badge-status review";
+        cardStatusBadge.innerText = "Needs Review";
+      } else {
+        cardStatusBadge.className = "badge-status unreviewed";
+        cardStatusBadge.innerText = "Unreviewed";
+      }
+
+      deckCounter.innerText = `Card ${currentIndex + 1} of ${filteredDeck.length}`;
+      prevBtn.disabled = (currentIndex === 0);
+      nextBtn.disabled = (currentIndex === filteredDeck.length - 1);
+    }
+
+    // DELETE CUSTOM CARD HANDLER
+    function deleteCurrentCard(e) {
+      if (e) e.stopPropagation(); // Stop card flip
+
+      if (filteredDeck.length === 0) return;
+      const currentCard = filteredDeck[currentIndex];
+
+      if (!currentCard.userCreated) {
+        alert("Statutory database laws cannot be deleted.");
+        return;
+      }
+
+      const confirmed = confirm(`Are you sure you want to delete this flashcard: "${currentCard.question}"?`);
+      if (!confirmed) return;
+
+      // Remove from global array
+      allCards = allCards.filter(c => c.id !== currentCard.id);
+
+      // Save updated custom cards to localStorage
+      const userCards = allCards.filter(c => c.userCreated);
+      localStorage.setItem("juris_custom_cards", JSON.stringify(userCards));
+
+      updateMyCardsCount();
+      filterDeck();
+    }
+
+    deleteFrontBtn.addEventListener("click", deleteCurrentCard);
+    deleteBackBtn.addEventListener("click", deleteCurrentCard);
+
+    // CARD FLIP
+    function toggleFlip() {
+      if (filteredDeck.length > 0) {
+        flashcard.classList.toggle("flipped");
+      }
+    }
+
+    flashcard.addEventListener("click", toggleFlip);
+    flipBtn.addEventListener("click", toggleFlip);
+
+    window.addEventListener("keydown", (e) => {
+      if (!createModal.classList.contains("hidden")) return;
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        toggleFlip();
+      } else if (e.code === "ArrowRight" && currentIndex < filteredDeck.length - 1) {
+        currentIndex++;
+        renderCard();
+      } else if (e.code === "ArrowLeft" && currentIndex > 0) {
+        currentIndex--;
+        renderCard();
+      }
+    });
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderCard();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < filteredDeck.length - 1) {
+        currentIndex++;
+        renderCard();
+      }
+    });
+
+    shuffleBtn.addEventListener("click", () => {
+      for (let i = filteredDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [filteredDeck[i], filteredDeck[j]] = [filteredDeck[j], filteredDeck[i]];
+      }
+      currentIndex = 0;
+      renderCard();
+    });
+
+    markReviewBtn.addEventListener("click", () => {
+      if (filteredDeck.length === 0) return;
+      filteredDeck[currentIndex].status = "review";
+      renderCard();
+      updateProgressLevel();
+    });
+
+    markGotItBtn.addEventListener("click", () => {
+      if (filteredDeck.length === 0) return;
+      filteredDeck[currentIndex].status = "gotit";
+      renderCard();
+      updateProgressLevel();
+    });
+
+    searchInput.addEventListener("input", filterDeck);
+
+    subjectFilters.querySelectorAll(".filter-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        subjectFilters.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+        selectedSubject = pill.dataset.subject;
+        showingOnlyUserCards = false;
+        myCardsBtn.style.background = "#fff";
+        myCardsBtn.style.color = "var(--ink)";
+        filterDeck();
+      });
+    });
+
+    myCardsBtn.addEventListener("click", () => {
+      showingOnlyUserCards = !showingOnlyUserCards;
+      if (showingOnlyUserCards) {
+        myCardsBtn.style.background = "var(--navy)";
+        myCardsBtn.style.color = "var(--white)";
+      } else {
+        myCardsBtn.style.background = "#fff";
+        myCardsBtn.style.color = "var(--ink)";
+      }
+      filterDeck();
+    });
+
+    openCreateModalBtn.addEventListener("click", () => {
+      createModal.classList.remove("hidden");
+    });
+
+    function closeModal() {
+      createModal.classList.add("hidden");
+      createCardForm.reset();
+    }
+
+    closeModalBtn.addEventListener("click", closeModal);
+    cancelModalBtn.addEventListener("click", closeModal);
+
+    createCardForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const subject = document.getElementById("newSubject").value;
+      const question = document.getElementById("newQuestion").value.trim();
+      const answer = document.getElementById("newAnswer").value.trim();
+      const source = document.getElementById("newSource").value.trim();
+
+      const newCard = {
+        id: Date.now(),
+        ra_number: source,
+        official_title: question,
+        plain_title: question,
+        category: subject,
+        year: new Date().getFullYear(),
+        question: question,
+        answer: answer,
+        scenario: "Custom user-generated scenario.",
+        penalties: "Refer to statutory reference provided.",
+        source: source,
+        userCreated: true,
+        status: "unreviewed"
+      };
+
+      allCards.unshift(newCard);
+
+      const userCards = allCards.filter(c => c.userCreated);
+      localStorage.setItem("juris_custom_cards", JSON.stringify(userCards));
+
+      updateMyCardsCount();
+      closeModal();
+      filterDeck();
+    });
+
+    function checkUrlSubject() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const subjectParam = urlParams.get("subject");
+      if (subjectParam) {
+        const matchingPill = Array.from(subjectFilters.querySelectorAll(".filter-pill"))
+          .find(p => p.dataset.subject.toLowerCase() === subjectParam.toLowerCase());
+        
+        if (matchingPill) {
+          matchingPill.click();
+        } else {
+          searchInput.value = subjectParam;
+          filterDeck();
+        }
+      }
+    }
+
+    // INITIALIZATION
+    loadSavedCards();
+    filterDeck();
+    checkUrlSubject();
+    syncBackendLaws();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Start Studying | JurisCards</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy: #071525;
+      --navy-light: #0c2035;
+      --navy-card: #0e263d;
+      --gold: #c9a45c;
+      --gold-light: #e0c27d;
+      --white: #f7f5ef;
+      --muted: #aeb8c4;
+      --border: rgba(201, 164, 92, 0.25);
+      --paper: #f5f2eb;
+      --ink: #142333;
+      --line: #dedbd3;
+      --success: #2e7d32;
+      --warning: #c25e00;
+      --accent-red: #c53030;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "DM Sans", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .container {
+      width: min(1200px, 92%);
+      margin: auto;
+    }
+
+    /* CENTERED NAVIGATION HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      height: 74px;
+      z-index: 100;
+      background: #071525;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .navbar {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Playfair Display", serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--white);
+      flex: 1;
+    }
+
+    .logo-symbol {
+      color: var(--gold);
+      font-size: 26px;
+    }
+
+    /* CENTERED NAV LINKS */
+    .nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+      flex: 2;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      color: #cbd3dc;
+      transition: 0.2s ease;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--gold-light);
+    }
+
+    .header-action {
+      display: flex;
+      justify-content: flex-end;
+      flex: 1;
+    }
+
+    .header-btn {
+      padding: 9px 20px;
+      border: 1px solid var(--gold);
+      color: var(--gold-light);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 2px;
+      transition: 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .header-btn:hover {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    /* MAIN */
+    main {
+      flex: 1;
+      padding: 38px 0 80px;
+    }
+
+    .eyebrow {
+      color: #927438;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    /* WELCOME HEADER */
+    .welcome-section {
+      margin-bottom: 30px;
+    }
+
+    .welcome-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .welcome-row h1 {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(30px, 3.6vw, 42px);
+      line-height: 1.15;
+    }
+
+    .welcome-row p {
+      color: #68717b;
+      font-size: 14.5px;
+      max-width: 620px;
+      margin-top: 4px;
+    }
+
+    .session-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    /* CONTINUE STUDYING BANNER */
+    .continue-banner {
+      background: var(--navy);
+      color: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 32px 38px;
+      margin-bottom: 35px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 25px;
+    }
+
+    .continue-banner::after {
+      content: "§";
+      position: absolute;
+      right: 35px;
+      top: -40px;
+      font-family: "Playfair Display", serif;
+      font-size: 200px;
+      color: rgba(201, 164, 92, 0.06);
+      pointer-events: none;
+    }
+
+    .continue-info {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+    }
+
+    .continue-info .eyebrow {
+      color: var(--gold-light);
+    }
+
+    .continue-info h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 26px;
+      margin-bottom: 8px;
+    }
+
+    .continue-info p {
+      color: #b8c2cc;
+      font-size: 13.5px;
+      margin-bottom: 14px;
+    }
+
+    .meta-pills {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--gold-light);
+    }
+
+    .btn-resume {
+      position: relative;
+      z-index: 1;
+      background: var(--gold);
+      color: var(--navy);
+      border: 1px solid var(--gold);
+      padding: 12px 24px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 4px;
+      transition: 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .btn-resume:hover {
+      background: var(--gold-light);
+    }
+
+    /* DASHBOARD SPLIT */
+    .dashboard-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
+      gap: 28px;
+      margin-bottom: 35px;
+    }
+
+    .section-title {
+      font-family: "Playfair Display", serif;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    /* STUDY MODES */
+    .modes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .mode-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 155px;
+      transition: 0.25s ease;
+    }
+
+    .mode-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(7, 21, 37, 0.05);
+    }
+
+    .mode-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 4px;
+      background: var(--navy);
+      color: var(--gold);
+      display: grid;
+      place-items: center;
+      font-family: "Playfair Display", serif;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .mode-card h3 {
+      font-size: 16.5px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .mode-card p {
+      font-size: 12px;
+      color: #68717b;
+      line-height: 1.5;
+    }
+
+    .mode-link {
+      font-size: 12px;
+      font-weight: 700;
+      color: #927438;
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* STUDY OVERVIEW METRICS */
+    .overview-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #68717b;
+      font-weight: 600;
+    }
+
+    .metric-value {
+      font-family: "Playfair Display", serif;
+      font-size: 30px;
+      line-height: 1;
+      margin-top: 6px;
+    }
+
+    .metric-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .badge-need-review {
+      background: #fff3e0;
+      color: var(--warning);
+    }
+
+    .badge-mastered {
+      background: #e8f5e9;
+      color: var(--success);
+    }
+
+    /* RECENT ACTIVITY & QUICK ACTIONS */
+    .bottom-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr);
+      gap: 28px;
+    }
+
+    .activity-card,
+    .quick-actions-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 22px;
+    }
+
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #edebe4;
+      gap: 15px;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .activity-meta h4 {
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+
+    .activity-meta p {
+      font-size: 11.5px;
+      color: #7b858d;
+    }
+
+    .activity-time {
+      font-size: 11px;
+      color: #8c97a4;
+      white-space: nowrap;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #faf8f5;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 10px;
+      transition: 0.2s ease;
+    }
+
+    .action-btn:last-child {
+      margin-bottom: 0;
+    }
+
+    .action-btn:hover {
+      background: var(--navy);
+      color: var(--white);
+      border-color: var(--navy);
+    }
+
+    /* 10-QUESTION PRACTICE QUIZ MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 21, 37, 0.88);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .quiz-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 620px;
+      border-radius: 6px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .quiz-header h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 22px;
+    }
+
+    .quiz-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #e7e5df;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .quiz-progress-fill {
+      height: 100%;
+      width: 10%;
+      background: var(--gold);
+      transition: width 0.3s ease;
+    }
+
+    .quiz-tracker {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #68717b;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .quiz-question-text {
+      font-size: 15px;
+      color: var(--navy);
+      font-weight: 600;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .quiz-opt-btn {
+      text-align: left;
+      padding: 12px 16px;
+      background: #faf8f5;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-size: 13px;
+      transition: 0.2s ease;
+    }
+
+    .quiz-opt-btn:hover:not(:disabled) {
+      border-color: var(--gold);
+      background: #ffffff;
+    }
+
+    .quiz-feedback {
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .quiz-controls {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-quiz-next {
+      padding: 10px 20px;
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .btn-quiz-next:hover {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 28px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: #050f1b;
+      color: #778493;
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: "Playfair Display", serif;
+      font-size: 19px;
+      color: var(--white);
+    }
+
+    .footer-logo span {
+      color: var(--gold);
+    }
+
+    .copyright {
+      font-size: 11px;
+    }
+
+    @media (max-width: 840px) {
+      .dashboard-split, .bottom-split {
+        grid-template-columns: 1fr;
+      }
+      .modes-grid {
+        grid-template-columns: 1fr;
+      }
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+
+  <header>
+    <div class="container navbar">
+      <a href="index.html" class="logo">
+        <span class="logo-symbol">⚖</span>
+        JurisCards
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="flashcard.html">Flashcard</a>
+        <a href="review.html">Review</a>
+      </nav>
+
+      <div class="header-action">
+        <a href="start-review.html" class="header-btn">Start Studying</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- WELCOME HEADER -->
+      <section class="welcome-section">
+        <div class="eyebrow">Academic Workspace</div>
+        <div class="welcome-row">
+          <div>
+            <h1 id="welcomeGreeting">Welcome back, Reviewee.</h1>
+            <p id="welcomePrompt">Consistency builds legal retention. Resume your previous statute study session or test your recall with a randomized 10-question practice quiz.</p>
+          </div>
+          <div class="session-badge">
+            <span style="color: var(--gold);">●</span> Active Session &bull; Goal: 10 Quiz Questions
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTINUE STUDYING HERO -->
+      <section class="continue-banner" id="continueCard">
+        <div class="continue-info">
+          <div class="eyebrow">Jump Back In</div>
+          <h2 id="continueTitle">RA 10175: Cybercrime Prevention Act</h2>
+          <p id="continueSummary">You paused on the distinction between online defamation and traditional libel.</p>
+          <div class="meta-pills">
+            <span id="continueCategory">Technology &amp; Crime</span> &bull;
+            <span id="continueRemaining">Active Practice Deck</span>
+          </div>
+        </div>
+        <a href="flashcard.html" class="btn-resume" id="resumeBtn">Resume Session &rarr;</a>
+      </section>
+
+      <!-- DASHBOARD SPLIT -->
+      <div class="dashboard-split">
+
+        <!-- STUDY MODES -->
+        <div>
+          <div class="section-title">Study Modes</div>
+          <div class="modes-grid">
+            <a href="flashcard.html" class="mode-card">
+              <div>
+                <div class="mode-icon">§</div>
+                <h3>Statutory Flashcards</h3>
+                <p>3D-flip active recall covering key elements, definitions, and statutory penalties.</p>
+              </div>
+              <span class="mode-link">Open Deck &rarr;</span>
+            </a>
+
+            <a href="browse.html" class="mode-card">
+              <div>
+                <div class="mode-icon">¶</div>
+                <h3>Browse Statutes</h3>
+                <p>Search full text, enacting presidents, minimum fines, and official Gazette filings.</p>
+              </div>
+              <span class="mode-link">Explore Laws &rarr;</span>
+            </a>
+
+            <a href="flashcard.html" class="mode-card">
+              <div>
+                <div class="mode-icon">◇</div>
+                <h3>My Custom Cards</h3>
+                <p>Review student-authored cards saved to your local browser storage.</p>
+              </div>
+              <span class="mode-link" id="myCardsCountLabel">View Cards (0) &rarr;</span>
+            </a>
+
+            <!-- Practice Quiz Trigger -->
+            <div class="mode-card" id="openQuizBtn" style="cursor: pointer;">
+              <div>
+                <div class="mode-icon">№</div>
+                <h3>Practice Quiz</h3>
+                <p>10 randomized questions testing RA numbers, simple rules, and fines from your API.</p>
+              </div>
+              <span class="mode-link">Start 10-Question Quiz &rarr;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STUDY OVERVIEW METRICS -->
+        <div>
+          <div class="section-title">Study Overview</div>
+          <div class="overview-stack">
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Cards Reviewed</div>
+                <div class="metric-value" id="statReviewedCount">0</div>
+              </div>
+              <span class="metric-badge badge-mastered" id="statMasteryRate">0% Mastered</span>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Subjects Covered</div>
+                <div class="metric-value">5</div>
+              </div>
+              <span style="font-size: 12px; color: #7b858d;">Civil, Criminal, Tax, Tech</span>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Flagged For Review</div>
+                <div class="metric-value" id="statReviewCount" style="color: var(--warning);">0</div>
+              </div>
+              <span class="metric-badge badge-need-review">Needs Work</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RECENT ACTIVITY & QUICK ACTIONS -->
+      <div class="bottom-split">
+        <div>
+          <div class="section-title">Recent Activity</div>
+          <div class="activity-card">
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-meta">
+                  <h4>RA 10175 — Cybercrime Prevention Act</h4>
+                  <p>Flashcard Session Completed &bull; Technology &amp; Crime</p>
+                </div>
+                <span class="activity-time">Just now</span>
+              </div>
+              <div class="activity-item">
+                <div class="activity-meta">
+                  <h4>RA 10963 — Tax Reform (TRAIN Act)</h4>
+                  <p>Statutory Breakdown Read &bull; Finance &amp; Taxes</p>
+                </div>
+                <span class="activity-time">2 hours ago</span>
+              </div>
+              <div class="activity-item">
+                <div class="activity-meta">
+                  <h4>RA 11313 — Safe Spaces Act (Bawal Bastos)</h4>
+                  <p>Flagged for Active Recall &bull; Social &amp; Welfare</p>
+                </div>
+                <span class="activity-time">Yesterday</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">Quick Actions</div>
+          <div class="quick-actions-card">
+            <a href="flashcard.html" class="action-btn">
+              <span>+ Create Flashcard</span>
+              <span>&rarr;</span>
+            </a>
+            <a href="browse.html" class="action-btn">
+              <span>Search Statute Database</span>
+              <span>&rarr;</span>
+            </a>
+            <a href="review.html" class="action-btn">
+              <span>Start Subject Review</span>
+              <span>&rarr;</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 10-QUESTION PRACTICE QUIZ MODAL -->
+  <div class="modal-overlay hidden" id="quizModal">
+    <div class="quiz-box">
+      <div class="quiz-header">
+        <h2>Practice Quiz</h2>
+        <button id="closeQuizBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #888;">&times;</button>
+      </div>
+
+      <!-- Quiz Progress -->
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" id="quizProgressFill"></div>
+      </div>
+
+      <div class="quiz-tracker">
+        <span id="quizCounter">Question 1 of 10</span>
+        <span id="quizScore">Score: 0</span>
+      </div>
+
+      <div id="quizQuestionBody">
+        <p class="quiz-question-text" id="quizQuestionText">Loading question...</p>
+        <div class="quiz-options" id="quizOptionsContainer"></div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+      </div>
+
+      <div class="quiz-controls">
+        <button class="btn-quiz-next" id="quizNextBtn">Next Question &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-logo"><span>⚖</span> JurisCards</div>
+      <div class="copyright">&copy; 2026 JurisCards. Philippine Law Study Platform.</div>
+    </div>
+  </footer>
+
+  <script>
+    const API_URL = "/api/v1";
+    const API_KEY = "student-api-key-123";
+
+    // MASTER QUESTION POOL (20 STATUTES)
+    const MASTER_QUIZ_POOL = [
+      {
+        q: "Under RA 11032 (Ease of Doing Business Act), what is the mandatory processing time limit for simple frontline transactions?",
+        correct: "3 working days",
+        distractors: ["24 hours", "7 working days", "20 working days"],
+        explanation: "RA 11032 enforces the 3-7-20 rule. Simple government transactions must be resolved within 3 working days."
+      },
+      {
+        q: "Under the TRAIN Law (RA 10963), who is exempt from paying individual personal income tax?",
+        correct: "Anyone with annual taxable income of ₱250,000 or below",
+        distractors: ["All government employees", "Only senior citizens", "All self-employed professionals"],
+        explanation: "Individuals earning an annual taxable income of ₱250,000 or below are subject to 0% personal income tax."
+      },
+      {
+        q: "What special penalty rule applies to online libel under RA 10175 (Cybercrime Prevention Act)?",
+        correct: "It carries a penalty one degree higher than traditional print libel",
+        distractors: ["It is completely decriminalized", "Only community service is required", "It is punishable only by an administrative fine"],
+        explanation: "Online libel is penalized one degree higher than print libel under the Revised Penal Code."
+      },
+      {
+        q: "Which law is commonly known as the 'Bawal Bastos Law', penalizing catcalling and public gender-based sexual harassment?",
+        correct: "RA 11313",
+        distractors: ["RA 10173", "RA 9994", "RA 9003"],
+        explanation: "RA 11313 is the Safe Spaces Act (Bawal Bastos Law), penalizing harassment in streets, schools, and workplaces."
+      },
+      {
+        q: "Under RA 9994 (Expanded Senior Citizens Act), what is the mandatory economic privilege provided on medicines and public transport?",
+        correct: "20% discount plus VAT exemption",
+        distractors: ["10% discount only", "30% discount without VAT exemption", "Free medicines nationwide"],
+        explanation: "Filipino citizens aged 60 and above receive a 20% discount plus 12% VAT exemption on qualified goods and services."
+      },
+      {
+        q: "What is the primary governing focus of the Data Privacy Act of 2012 (RA 10173)?",
+        correct: "Protecting individuals' personal and sensitive personal information",
+        distractors: ["Registering patents and copyrights", "Regulating television broadcasts", "Setting internet connectivity charges"],
+        explanation: "RA 10173 protects personal data privacy while ensuring the free flow of information across organizations."
+      },
+      {
+        q: "Under RA 9003, what is the legal mandate regarding household garbage management?",
+        correct: "Waste segregation must be performed at source",
+        distractors: ["Open burning (siga) is encouraged", "Open dump sites are fully permitted", "All waste must be combined into one bag"],
+        explanation: "RA 9003 requires mandatory waste segregation at source (biodegradable, recyclable, non-recyclable, and special)."
+      },
+      {
+        q: "Under RA 9165, what procedural requirement in Section 21 is critical during drug seizures?",
+        correct: "Strict physical inventory and photographing in the presence of required witnesses",
+        distractors: ["Immediate public auction of seized goods", "Allowing the suspect to leave on verbal bail", "Destruction of all evidence within 1 hour without court order"],
+        explanation: "Section 21 mandates immediate physical inventory and photographing in the presence of the accused, media, and elected officials."
+      },
+      {
+        q: "Under the Universal Health Care Act (RA 11223), which Filipinos are automatically enrolled in PhilHealth?",
+        correct: "All Filipino citizens automatically",
+        distractors: ["Only formally employed workers", "Only indigent families", "Only senior citizens"],
+        explanation: "RA 11223 automatically enrolls all Filipino citizens into the National Health Insurance Program."
+      },
+      {
+        q: "Under the Consumer Act of the Philippines (RA 7394), which retail store policy is strictly prohibited?",
+        correct: "'No Return, No Exchange' policies on defective goods",
+        distractors: ["Cash-only payments", "Offering store warranties", "Providing sales receipts"],
+        explanation: "Retailers cannot enforce 'No Return, No Exchange' rules when the purchased merchandise is defective."
+      },
+      {
+        q: "Under RA 9262 (Anti-VAWC Act), what forms of abuse are penalized aside from physical harm?",
+        correct: "Psychological, sexual, and economic abuse",
+        distractors: ["Only physical assault resulting in hospital care", "Only verbal arguments during marriage", "Non-payment of commercial business debt"],
+        explanation: "RA 9262 covers physical, psychological, sexual, and economic abuse against women and their children."
+      },
+      {
+        q: "What is the mandatory bank lending requirement for Micro and Small Enterprises under RA 9501?",
+        correct: "At least 8% of the total loan portfolio",
+        distractors: ["At least 25% of total revenue", "At least 1% of net income", "No mandatory quota exists"],
+        explanation: "RA 9501 requires all lending institutions to allocate at least 8% of their loan portfolio to micro and small enterprises."
+      },
+      {
+        q: "Under the Philippine Clean Air Act (RA 8749), what practice is banned for municipal waste disposal?",
+        correct: "Waste incineration",
+        distractors: ["Sanitary landfills", "Tree planting programs", "Recycling plastic waste"],
+        explanation: "RA 8749 prohibits municipal, bio-medical, and hazardous waste incineration."
+      },
+      {
+        q: "Under RA 10627 (Anti-Bullying Act), what institutions are mandated to implement anti-bullying policies?",
+        correct: "All elementary and secondary schools",
+        distractors: ["Only private universities", "Only vocational trade centers", "Only government sports agencies"],
+        explanation: "All basic education schools (public and private) must adopt anti-bullying policies under RA 10627."
+      },
+      {
+        q: "Under the Anti-Red Tape Act (RA 9485), what posted document details public service steps and fees?",
+        correct: "The Citizen's Charter",
+        distractors: ["The Bureau Directory", "The Public Service Ledger", "The Agency Annual Report"],
+        explanation: "The Citizen's Charter is an official document posted at agency entrances detailing service standards, fees, and processing times."
+      }
+    ];
+
+    let currentQuizSet = [];
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+
+    // FISHER-YATES SHUFFLE HELPER
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // SYNC QUIZ WITH API (CREATES NEW SIMPLIFIED QUESTIONS FROM DATABASE LAWS)
+    async function syncQuizFromApi() {
+      try {
+        const response = await fetch(`${API_URL}/laws`, {
+          headers: { "x-api-key": API_KEY }
+        });
+        if (!response.ok) throw new Error("API unreachable");
+        const data = await response.json();
+        const laws = Array.isArray(data) ? data : (data.laws || []);
+
+        if (laws.length >= 10) {
+          laws.forEach(law => {
+            const poolTitles = laws
+              .filter(l => l.ra_number !== law.ra_number)
+              .map(l => l.plain_title || l.official_title);
+            
+            const randomDistractors = shuffleArray(poolTitles).slice(0, 3);
+
+            MASTER_QUIZ_POOL.push({
+              q: `What is the core subject regulated under ${law.ra_number}?`,
+              correct: law.plain_title || law.official_title,
+              distractors: randomDistractors,
+              explanation: law.tldr_summary || "Refer to the statutory digest for full details."
+            });
+          });
+        }
+      } catch (e) {
+        console.log("Using built-in master legal question pool.");
+      }
+    }
+
+    // GENERATE 10 RANDOM QUESTIONS WITH SHUFFLED OPTIONS
+    function generateTenQuestionQuiz() {
+      // 1. Shuffle the master pool and pick 10 questions
+      const selectedQuestions = shuffleArray(MASTER_QUIZ_POOL).slice(0, 10);
+
+      // 2. Shuffle answer choices for each question so correct isn't always option B
+      currentQuizSet = selectedQuestions.map(item => {
+        const choices = shuffleArray([item.correct, ...item.distractors]);
+        return {
+          question: item.q,
+          options: choices,
+          correctIndex: choices.indexOf(item.correct),
+          explanation: item.explanation
+        };
+      });
+    }
+
+    // DYNAMIC GREETING
+    function initGreeting() {
+      const hour = new Date().getHours();
+      const greetingEl = document.getElementById("welcomeGreeting");
+      if (hour < 12) greetingEl.innerText = "Good morning, Reviewee.";
+      else if (hour < 18) greetingEl.innerText = "Good afternoon, Reviewee.";
+      else greetingEl.innerText = "Good evening, Reviewee.";
+    }
+
+    // LOAD OVERVIEW METRICS
+    function loadMetrics() {
+      const savedCards = JSON.parse(localStorage.getItem("juris_custom_cards") || "[]");
+      document.getElementById("myCardsCountLabel").innerText = `View Cards (${savedCards.length}) →`;
+
+      let mastered = 0;
+      let review = 0;
+      savedCards.forEach(c => {
+        if (c.status === "gotit") mastered++;
+        if (c.status === "review") review++;
+      });
+
+      const total = mastered + review;
+      document.getElementById("statReviewedCount").innerText = total;
+      document.getElementById("statReviewCount").innerText = review;
+      const rate = total > 0 ? Math.round((mastered / total) * 100) : 0;
+      document.getElementById("statMasteryRate").innerText = `${rate}% Mastered`;
+    }
+
+    // QUIZ MODAL CONTROLS
+    const quizModal = document.getElementById("quizModal");
+    const openQuizBtn = document.getElementById("openQuizBtn");
+    const closeQuizBtn = document.getElementById("closeQuizBtn");
+    const quizQuestionText = document.getElementById("quizQuestionText");
+    const quizOptionsContainer = document.getElementById("quizOptionsContainer");
+    const quizFeedback = document.getElementById("quizFeedback");
+    const quizNextBtn = document.getElementById("quizNextBtn");
+    const quizProgressFill = document.getElementById("quizProgressFill");
+    const quizCounter = document.getElementById("quizCounter");
+    const quizScoreDisplay = document.getElementById("quizScore");
+
+    openQuizBtn.addEventListener("click", () => {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      generateTenQuestionQuiz(); // Shuffles questions and choices
+      quizModal.classList.remove("hidden");
+      renderQuizQuestion();
+    });
+
+    closeQuizBtn.addEventListener("click", () => quizModal.classList.add("hidden"));
+
+    function renderQuizQuestion() {
+      const currentQ = currentQuizSet[currentQuizIndex];
+      quizCounter.innerText = `Question ${currentQuizIndex + 1} of 10`;
+      quizScoreDisplay.innerText = `Score: ${quizScore}`;
+      quizProgressFill.style.width = `${((currentQuizIndex + 1) / 10) * 100}%`;
+
+      quizQuestionText.innerText = `${currentQuizIndex + 1}. ${currentQ.question}`;
+      quizOptionsContainer.innerHTML = "";
+      quizFeedback.style.display = "none";
+      quizNextBtn.style.display = "none";
+
+      currentQ.options.forEach((optText, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "quiz-opt-btn";
+        btn.innerText = optText;
+        btn.addEventListener("click", () => handleAnswerSelect(idx, btn));
+        quizOptionsContainer.appendChild(btn);
+      });
+    }
+
+    function handleAnswerSelect(selectedIdx, selectedBtn) {
+      const currentQ = currentQuizSet[currentQuizIndex];
+      const buttons = quizOptionsContainer.querySelectorAll(".quiz-opt-btn");
+      buttons.forEach(b => b.disabled = true);
+
+      quizFeedback.style.display = "block";
+
+      if (selectedIdx === currentQ.correctIndex) {
+        quizScore++;
+        quizScoreDisplay.innerText = `Score: ${quizScore}`;
+        selectedBtn.style.background = "#e8f5e9";
+        selectedBtn.style.color = "var(--success)";
+        selectedBtn.style.borderColor = "var(--success)";
+        quizFeedback.style.background = "#e8f5e9";
+        quizFeedback.style.color = "var(--success)";
+        quizFeedback.innerText = `Correct! ${currentQ.explanation}`;
+      } else {
+        selectedBtn.style.background = "#ffebee";
+        selectedBtn.style.color = "var(--accent-red)";
+        selectedBtn.style.borderColor = "var(--accent-red)";
+
+        // Highlight correct option dynamically
+        buttons[currentQ.correctIndex].style.background = "#e8f5e9";
+        buttons[currentQ.correctIndex].style.color = "var(--success)";
+        buttons[currentQ.correctIndex].style.borderColor = "var(--success)";
+
+        quizFeedback.style.background = "#fff3e0";
+        quizFeedback.style.color = "var(--warning)";
+        quizFeedback.innerText = `Incorrect. ${currentQ.explanation}`;
+      }
+
+      quizNextBtn.style.display = "inline-block";
+      if (currentQuizIndex === 9) {
+        quizNextBtn.innerText = "Finish Quiz & View Results";
+      } else {
+        quizNextBtn.innerText = "Next Question →";
+      }
+    }
+
+    quizNextBtn.addEventListener("click", () => {
+      if (currentQuizIndex < 9) {
+        currentQuizIndex++;
+        renderQuizQuestion();
+      } else {
+        renderQuizSummary();
+      }
+    });
+
+    function renderQuizSummary() {
+      quizProgressFill.style.width = "100%";
+      quizCounter.innerText = "Quiz Completed";
+      quizQuestionText.innerText = `You scored ${quizScore} out of 10!`;
+
+      const pct = Math.round((quizScore / 10) * 100);
+      let verdict = pct >= 80 ? "Outstanding retention of Philippine statutory concepts." : (pct >= 50 ? "Good effort. Review flagged cards in your deck." : "Keep studying! Revisit flashcards to reinforce key provisions.");
+
+      quizOptionsContainer.innerHTML = `
+        <div style="padding: 20px; background: #faf8f5; border: 1px solid var(--line); border-radius: 4px; text-align: center;">
+          <div style="font-family: 'Playfair Display', serif; font-size: 38px; color: var(--gold); margin-bottom: 6px;">${pct}%</div>
+          <p style="font-size: 13.5px; color: var(--navy); font-weight: 600; margin-bottom: 15px;">${verdict}</p>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="openQuizBtn.click()" class="action-btn" style="padding: 10px 20px; background: var(--navy); color: #fff; cursor: pointer;">Retake Randomized Quiz →</button>
+            <a href="flashcard.html" class="action-btn" style="padding: 10px 20px; background: #fff; color: var(--ink); text-decoration: none;">Review Flashcards →</a>
+          </div>
+        </div>
+      `;
+      quizFeedback.style.display = "none";
+      quizNextBtn.style.display = "none";
+    }
+
+    // INITIALIZATION
+    initGreeting();
+    loadMetrics();
+    syncQuizFromApi();
+  </script>
+</body>
+</html>

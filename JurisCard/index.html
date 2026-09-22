@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>JurisCards | Philippine Law Study Platform</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+
+        /* ================================
+           GLOBAL
+        ================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "DM Sans", sans-serif;
+            background: #071525;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .container {
+            width: min(1180px, 90%);
+            margin: auto;
+        }
+
+
+        /* ================================
+           COLORS
+        ================================= */
+
+        :root {
+            --navy: #071525;
+            --navy-light: #0c2035;
+            --navy-card: #0e263d;
+            --gold: #c9a45c;
+            --gold-light: #e0c27d;
+            --white: #f7f5ef;
+            --muted: #aeb8c4;
+            --border: rgba(201, 164, 92, 0.25);
+        }
+
+
+        /* ================================
+           HEADER
+        ================================= */
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 78px;
+
+            z-index: 1000;
+
+            background: rgba(7, 21, 37, 0.88);
+            backdrop-filter: blur(15px);
+
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .navbar {
+            height: 100%;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+
+        /* LOGO */
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            font-family: "Playfair Display", serif;
+            font-size: 25px;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .logo-symbol {
+            color: var(--gold);
+            font-size: 27px;
+        }
+
+
+        /* NAVIGATION */
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 42px;
+        }
+
+        .nav-links a {
+            position: relative;
+
+            font-size: 14px;
+            color: #cbd3dc;
+
+            transition: 0.3s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--gold-light);
+        }
+
+        .nav-links a.active::after {
+            content: "";
+
+            position: absolute;
+            left: 0;
+            bottom: -9px;
+
+            width: 100%;
+            height: 1px;
+
+            background: var(--gold);
+        }
+
+
+        /* HEADER BUTTON */
+
+        .header-button {
+            padding: 10px 20px;
+
+            border: 1px solid var(--gold);
+            border-radius: 4px;
+
+            color: var(--gold-light);
+
+            font-size: 13px;
+            font-weight: 600;
+
+            transition: 0.3s ease;
+        }
+
+        .header-button:hover {
+            background: var(--gold);
+            color: var(--navy);
+        }
+
+
+        /* ================================
+           HERO
+        ================================= */
+
+        .hero {
+            min-height: 100vh;
+
+            position: relative;
+
+            display: flex;
+            align-items: center;
+
+            overflow: hidden;
+
+            padding-top: 78px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #071525 0%,
+                    #071525 38%,
+                    rgba(7,21,37,0.86) 55%,
+                    rgba(7,21,37,0.35) 100%
+                ),
+                url("hero-law.jpg");
+
+            background-size: cover;
+            background-position: center right;
+        }
+
+        .hero::after {
+            content: "";
+
+            position: absolute;
+            inset: 0;
+
+            background:
+                radial-gradient(
+                    circle at 75% 50%,
+                    rgba(201,164,92,0.12),
+                    transparent 30%
+                );
+
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+
+            width: 620px;
+
+            padding: 80px 0;
+        }
+
+
+        /* SMALL LABEL */
+
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            color: var(--gold-light);
+
+            font-size: 12px;
+            font-weight: 600;
+
+            letter-spacing: 3px;
+            text-transform: uppercase;
+
+            margin-bottom: 25px;
+        }
+
+        .eyebrow::before {
+            content: "";
+
+            width: 40px;
+            height: 1px;
+
+            background: var(--gold);
+        }
+
+
+        /* HERO TITLE */
+
+        .hero h1 {
+            font-family: "Playfair Display", serif;
+
+            font-size: clamp(48px, 6vw, 76px);
+
+            line-height: 1.05;
+
+            font-weight: 600;
+
+            margin-bottom: 25px;
+
+            color: var(--white);
+        }
+
+        .hero h1 span {
+            color: var(--gold-light);
+        }
+
+        .hero-description {
+            max-width: 540px;
+
+            font-size: 17px;
+            line-height: 1.8;
+
+            color: #c3ccd5;
+
+            margin-bottom: 38px;
+        }
+
+
+        /* HERO BUTTONS */
+
+        .hero-buttons {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-primary {
+            padding: 14px 27px;
+
+            background: var(--gold);
+            color: var(--navy);
+
+            border: 1px solid var(--gold);
+
+            font-size: 14px;
+            font-weight: 600;
+
+            transition: 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--gold-light);
+        }
+
+        .btn-secondary {
+            padding: 14px 27px;
+
+            border: 1px solid rgba(255,255,255,0.3);
+
+            color: var(--white);
+
+            font-size: 14px;
+
+            transition: 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gold);
+            color: var(--gold-light);
+        }
+
+
+        /* ================================
+           INTRODUCTION
+        ================================= */
+
+        .introduction {
+            padding: 120px 0;
+
+            background: #f5f2eb;
+            color: #142333;
+        }
+
+        .section-label {
+            color: #927438;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            letter-spacing: 3px;
+            text-transform: uppercase;
+
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-family: "Playfair Display", serif;
+
+            font-size: clamp(36px, 4vw, 52px);
+
+            line-height: 1.15;
+
+            max-width: 700px;
+
+            margin-bottom: 25px;
+        }
+
+        .section-description {
+            max-width: 720px;
+
+            color: #59636d;
+
+            font-size: 16px;
+
+            line-height: 1.8;
+        }
+
+
+        /* ================================
+           LAW INFORMATION
+        ================================= */
+
+        .law-grid {
+            margin-top: 60px;
+
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 22px;
+        }
+
+        .law-card {
+            padding: 34px;
+
+            background: #ffffff;
+
+            border: 1px solid #ddd8ce;
+
+            position: relative;
+
+            transition: 0.3s ease;
+        }
+
+        .law-card:hover {
+            transform: translateY(-5px);
+
+            border-color: #b79a61;
+
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+        }
+
+        .law-number {
+            font-family: "Playfair Display", serif;
+
+            color: #b79858;
+
+            font-size: 14px;
+
+            margin-bottom: 25px;
+        }
+
+        .law-card h3 {
+            font-family: "Playfair Display", serif;
+
+            font-size: 25px;
+
+            margin-bottom: 14px;
+        }
+
+        .law-card p {
+            color: #68717b;
+
+            font-size: 14px;
+
+            line-height: 1.8;
+        }
+
+        .law-card a {
+            display: inline-block;
+
+            margin-top: 25px;
+
+            color: #80652e;
+
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+
+        /* ================================
+           JURISDICTION SECTION
+        ================================= */
+
+        .jurisdiction {
+            padding: 120px 0;
+
+            background: var(--navy);
+        }
+
+        .jurisdiction-header {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: end;
+
+            gap: 40px;
+
+            margin-bottom: 60px;
+        }
+
+        .jurisdiction-header .section-title {
+            color: var(--white);
+            margin-bottom: 0;
+        }
+
+        .jurisdiction-header .section-description {
+            color: #9caab8;
+
+            max-width: 450px;
+        }
+
+
+        /* JURISDICTION CARDS */
+
+        .jurisdiction-grid {
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 18px;
+        }
+
+        .jurisdiction-card {
+            min-height: 250px;
+
+            padding: 30px;
+
+            background: var(--navy-card);
+
+            border: 1px solid var(--border);
+
+            transition: 0.3s ease;
+        }
+
+        .jurisdiction-card:hover {
+            transform: translateY(-5px);
+
+            border-color: var(--gold);
+        }
+
+        .jurisdiction-icon {
+            width: 45px;
+            height: 45px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin-bottom: 30px;
+
+            border: 1px solid var(--gold);
+
+            color: var(--gold);
+
+            font-size: 19px;
+        }
+
+        .jurisdiction-card h3 {
+            font-family: "Playfair Display", serif;
+
+            font-size: 22px;
+
+            margin-bottom: 13px;
+        }
+
+        .jurisdiction-card p {
+            color: #9eabb7;
+
+            font-size: 13px;
+
+            line-height: 1.7;
+        }
+
+
+        /* ================================
+           STUDY CTA
+        ================================= */
+
+        .study-cta {
+            padding: 100px 0;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #0b2034,
+                    #071525
+                );
+        }
+
+        .cta-container {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 50px;
+
+            padding: 55px;
+
+            border: 1px solid var(--border);
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(201,164,92,0.06),
+                    transparent
+                );
+        }
+
+        .cta-container h2 {
+            font-family: "Playfair Display", serif;
+
+            font-size: 40px;
+
+            margin-bottom: 12px;
+        }
+
+        .cta-container p {
+            color: #aeb9c4;
+
+            max-width: 600px;
+        }
+
+
+        /* ================================
+           FOOTER
+        ================================= */
+
+        footer {
+            padding: 35px 0;
+
+            border-top: 1px solid rgba(255,255,255,0.08);
+
+            background: #050f1b;
+        }
+
+        .footer-content {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-logo {
+            font-family: "Playfair Display", serif;
+
+            font-size: 20px;
+        }
+
+        .footer-logo span {
+            color: var(--gold);
+        }
+
+        .copyright {
+            color: #778493;
+
+            font-size: 12px;
+        }
+
+
+        /* ================================
+           RESPONSIVE
+        ================================= */
+
+        @media (max-width: 1000px) {
+
+            .nav-links {
+                gap: 20px;
+            }
+
+            .law-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .jurisdiction-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .jurisdiction-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            header {
+                height: 70px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .header-button {
+                display: none;
+            }
+
+            .hero {
+                min-height: 850px;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        rgba(7,21,37,0.88),
+                        #071525 80%
+                    ),
+                    url("hero-law.jpg");
+
+                background-position: center;
+            }
+
+            .hero-content {
+                width: 100%;
+
+                padding-top: 100px;
+            }
+
+            .hero h1 {
+                font-size: 48px;
+            }
+
+            .hero-description {
+                font-size: 15px;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .law-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .jurisdiction-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-container {
+                flex-direction: column;
+                align-items: flex-start;
+
+                padding: 35px 25px;
+            }
+
+            .cta-container h2 {
+                font-size: 32px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+
+    <!-- ==========================================
+         HEADER
+    =========================================== -->
+
+    <header>
+
+        <div class="container navbar">
+
+            <a href="index.html" class="logo">
+                <span class="logo-symbol">⚖</span>
+                JurisCards
+            </a>
+
+            <nav class="nav-links">
+
+                <a href="index.html" class="active">
+                    Home
+                </a>
+
+                <a href="flashcard.html">
+                    Flashcard
+                </a>
+
+                <a href="review.html">
+                    Review
+                </a>
+
+            </nav>
+
+            <a href="start-review.html" class="header-button">
+                Start Studying
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- ==========================================
+         HERO
+    =========================================== -->
+
+    <main>
+
+        <section class="hero">
+
+            <div class="container">
+
+                <div class="hero-content">
+
+                    <div class="eyebrow">
+                        Philippine Legal Studies
+                    </div>
+
+                    <h1>
+                        Know the Law.<br>
+                        <span>Understand Your Rights.</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        JurisCards is a focused study platform designed to help
+                        students understand Philippine law through structured
+                        flashcards, legal concepts, and review materials.
+                    </p>
+
+                    <div class="hero-buttons">
+
+                        <a href="flashcard.html" class="btn-primary">
+                            Explore Flashcards
+                        </a>
+
+                        <a href="#philippine-law" class="btn-secondary">
+                            Learn About Philippine Law
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==========================================
+             PHILIPPINE LAW INTRO
+        =========================================== -->
+
+        <section class="introduction" id="philippine-law">
+
+            <div class="container">
+
+                <div class="section-label">
+                    Philippine Legal System
+                </div>
+
+                <h2 class="section-title">
+                    Understanding the foundations of Philippine law.
+                </h2>
+
+                <p class="section-description">
+                    The Philippine legal system is shaped by the Constitution,
+                    statutes enacted by Congress, administrative regulations,
+                    judicial decisions, and established legal principles.
+                    Understanding how these sources interact is fundamental
+                    to the study and practice of law.
+                </p>
+
+
+                <div class="law-grid">
+
+
+                    <article class="law-card">
+
+                        <div class="law-number">
+                            01 / CONSTITUTION
+                        </div>
+
+                        <h3>
+                            1987 Constitution
+                        </h3>
+
+                        <p>
+                            The fundamental and supreme law of the Philippines.
+                            It establishes the structure of government and
+                            protects the fundamental rights of the people.
+                        </p>
+
+                        <a href="#">
+                            Explore →
+                        </a>
+
+                    </article>
+
+
+
+                    <article class="law-card">
+
+                        <div class="law-number">
+                            02 / LEGISLATION
+                        </div>
+
+                        <h3>
+                            Statutory Law
+                        </h3>
+
+                        <p>
+                            Laws enacted by Congress that govern rights,
+                            obligations, relationships, and conduct within
+                            Philippine society.
+                        </p>
+
+                        <a href="#">
+                            Explore →
+                        </a>
+
+                    </article>
+
+
+
+                    <article class="law-card">
+
+                        <div class="law-number">
+                            03 / JUDICIARY
+                        </div>
+
+                        <h3>
+                            Case Law
+                        </h3>
+
+                        <p>
+                            Decisions of the Supreme Court and other courts
+                            that interpret laws and contribute to the
+                            development of Philippine jurisprudence.
+                        </p>
+
+                        <a href="#">
+                            Explore →
+                        </a>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==========================================
+             JURISDICTION
+        =========================================== -->
+
+        <section class="jurisdiction">
+
+            <div class="container">
+
+                <div class="jurisdiction-header">
+
+                    <div>
+
+                        <div class="section-label">
+                            Legal Framework
+                        </div>
+
+                        <h2 class="section-title">
+                            Jurisdiction &amp; Legal Fields
+                        </h2>
+
+                    </div>
+
+                    <p class="section-description">
+                        Explore major areas of Philippine law and build a
+                        stronger foundation for your legal studies.
+                    </p>
+
+                </div>
+
+
+                <div class="jurisdiction-grid">
+
+
+                    <article class="jurisdiction-card">
+
+                        <div class="jurisdiction-icon">
+                            §
+                        </div>
+
+                        <h3>
+                            Constitutional Law
+                        </h3>
+
+                        <p>
+                            Study the Constitution, government powers,
+                            individual rights, and constitutional principles.
+                        </p>
+
+                    </article>
+
+
+
+                    <article class="jurisdiction-card">
+
+                        <div class="jurisdiction-icon">
+                            ⚖
+                        </div>
+
+                        <h3>
+                            Criminal Law
+                        </h3>
+
+                        <p>
+                            Understand offenses, penalties, criminal liability,
+                            and principles under Philippine criminal law.
+                        </p>
+
+                    </article>
+
+
+
+                    <article class="jurisdiction-card">
+
+                        <div class="jurisdiction-icon">
+                            ◇
+                        </div>
+
+                        <h3>
+                            Civil Law
+                        </h3>
+
+                        <p>
+                            Explore obligations, contracts, property,
+                            succession, and other private legal relationships.
+                        </p>
+
+                    </article>
+
+
+
+                    <article class="jurisdiction-card">
+
+                        <div class="jurisdiction-icon">
+                            №
+                        </div>
+
+                        <h3>
+                            Remedial Law
+                        </h3>
+
+                        <p>
+                            Review procedural rules governing civil,
+                            criminal, and special proceedings before courts.
+                        </p>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==========================================
+             CTA
+        =========================================== -->
+
+        <section class="study-cta">
+
+            <div class="container">
+
+                <div class="cta-container">
+
+                    <div>
+
+                        <div class="section-label">
+                            Begin Your Review
+                        </div>
+
+                        <h2>
+                            Build your legal foundation.
+                        </h2>
+
+                        <p>
+                            Turn complex legal concepts into structured,
+                            focused study sessions with JurisCards.
+                        </p>
+
+                    </div>
+
+                    <a href="flashcard.html" class="btn-primary">
+                        Start Reviewing →
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+
+    <!-- ==========================================
+         FOOTER
+    =========================================== -->
+
+    <footer>
+
+        <div class="container footer-content">
+
+            <div class="footer-logo">
+                <span>⚖</span> JurisCards
+            </div>
+
+            <div class="copyright">
+                © 2026 JurisCards. Philippine Law Study Platform.
+            </div>
+
+        </div>
+
+    </footer>
+
+
+</body>
+</html>
