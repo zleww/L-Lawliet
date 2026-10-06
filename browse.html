@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browse Laws - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+<div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+<ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+      <li><a href="categories.html">Categories</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="resources.html">Resources</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <!-- Browse Header Section -->
+  <header class="hero" style="padding: 40px 4vw 60px;">
+    <div class="hero-content" style="max-width: 800px;">
+      <h1>Browse All <span class="gold-text">Republic Acts.</span></h1>
+      <p>Explore our complete database of 20+ Philippine laws explained in plain English. Use the search bar or category filters below.</p>
+      
+      <div class="search-container" style="margin-top: 20px;">
+        <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
+        <button class="search-btn">🔍</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Category Filter Pills Section -->
+  <section class="filter-section" style="padding: 0 4vw 30px; max-width: 1400px; margin: 0 auto;">
+    <div id="categoryFilters" style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <button class="filter-btn active-filter" data-category="All" style="background: var(--accent-gold); color: black; border: none; padding: 8px 18px; border-radius: 20px; font-weight: 600; cursor: pointer;">All Laws</button>
+      <button class="filter-btn" data-category="Technology & Crime" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Technology & Crime</button>
+      <button class="filter-btn" data-category="Finance & Taxes" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Finance & Taxes</button>
+      <button class="filter-btn" data-category="Governance & Business" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Governance & Business</button>
+      <button class="filter-btn" data-category="Social & Welfare" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Social & Welfare</button>
+      <button class="filter-btn" data-category="Environment" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Environment</button>
+      <button class="filter-btn" data-category="Education & Civil Rights" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 20px; font-weight: 500; cursor: pointer;">Education & Civil Rights</button>
+    </div>
+  </section>
+
+  <!-- Main Laws Grid Display -->
+  <main class="content-wrapper" style="margin-top: 20px;">
+    <div id="lawsGrid" class="grid"></div>
+  </main>
+
+  <!-- Modal Deep Dive View -->
+  <div id="lawModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeModal" class="close-btn">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+<!-- Dedicated Browse Page Script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Configuration & DOM Elements (Defined at top to prevent ReferenceErrors)
+      const API_KEY = "student-api-key-123";
+
+      const lawsGrid = document.getElementById("lawsGrid");
+      const searchInput = document.getElementById("searchInput");
+      const filterButtons = document.querySelectorAll(".filter-btn");
+      const modal = document.getElementById("lawModal");
+      const modalBody = document.getElementById("modalBody");
+      const closeModal = document.getElementById("closeModal");
+
+      let allLaws = [];
+      let currentCategory = "All";
+
+      // Escape user-typed text before putting it into innerHTML (prevents XSS)
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      // 1. Check URL parameters for any incoming search query
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialSearchQuery = urlParams.get("search");
+      if (initialSearchQuery && searchInput) {
+        searchInput.value = initialSearchQuery;
+      }
+
+      // 2. Fetch laws from FastAPI backend with API Key header
+      async function fetchLaws() {
+        try {
+          const response = await fetch('/api/v1/laws', {
+            headers: {
+              'x-api-key': API_KEY
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server returned HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          allLaws = Array.isArray(data) ? data : (data.laws || []);
+          filterAndDisplay();
+        } catch (error) {
+          console.error("Fetch error on browse page:", error);
+          if (lawsGrid) {
+            lawsGrid.innerHTML = `<p style="color: var(--text-muted);">Failed to load laws from the backend.</p>`;
+          }
+        }
+      }
+
+      // 3. Filter & Render laws across category and search query
+      function filterAndDisplay() {
+        const query = searchInput ? searchInput.value.toLowerCase() : "";
+        
+        const filtered = allLaws.filter(law => {
+          const matchesCategory = currentCategory === "All" || law.category === currentCategory;
+          const matchesSearch = 
+            (law.ra_number && law.ra_number.toLowerCase().includes(query)) ||
+            (law.plain_title && law.plain_title.toLowerCase().includes(query)) ||
+            (law.official_title && law.official_title.toLowerCase().includes(query)) ||
+            (law.tldr_summary && law.tldr_summary.toLowerCase().includes(query)) ||
+            (law.category && law.category.toLowerCase().includes(query)) ||
+            (law.enacting_president && law.enacting_president.toLowerCase().includes(query)) ||
+            (law.target_audience && law.target_audience.toLowerCase().includes(query));
+          
+          return matchesCategory && matchesSearch;
+        });
+
+        displayLaws(filtered);
+      }
+
+      function displayLaws(laws) {
+        lawsGrid.innerHTML = "";
+        
+        if (laws.length === 0) {
+          lawsGrid.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 40px;">No laws found matching your search or category filter.</p>`;
+          return;
+        }
+
+        laws.forEach(law => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span class="badge" style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${law.category}</span>
+              <span style="color: var(--text-muted); font-size: 0.8rem;">${law.status || 'Active'}</span>
+            </div>
+            <h3 style="color: var(--accent-gold); margin-bottom: 5px;">${law.ra_number}</h3>
+            <h4 style="color: var(--text-main); margin-bottom: 10px; font-size: 1.1rem;">${law.plain_title}</h4>
+            <p class="summary" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">${law.tldr_summary}</p>
+            <span class="click-more" style="color: var(--accent-gold); font-size: 0.85rem; font-weight: bold;">Click to view full details &rarr;</span>
+          `;
+          
+          card.addEventListener("click", () => openModal(law));
+          lawsGrid.appendChild(card);
+        });
+      }
+
+      // 4. Search listener
+      if (searchInput) {
+        searchInput.addEventListener("input", filterAndDisplay);
+      }
+
+      // 5. Category filter pill listener
+      filterButtons.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          filterButtons.forEach(b => {
+            b.classList.remove("active-filter");
+            b.style.background = "var(--bg-card)";
+            b.style.color = "var(--text-main)";
+            b.style.border = "1px solid var(--border-color)";
+          });
+
+          e.target.classList.add("active-filter");
+          e.target.style.background = "var(--accent-gold)";
+          e.target.style.color = "black";
+          e.target.style.border = "none";
+
+          currentCategory = e.target.getAttribute("data-category");
+          filterAndDisplay();
+        });
+      });
+
+      // 6. Modal display with all 20 Identifiers & State-Synced Comments
+      function openModal(law) {
+        if (!law.user_notes) law.user_notes = [];
+
+        const formattedFine = law.min_fine_php 
+          ? `₱${Number(law.min_fine_php).toLocaleString()}` 
+          : "None / Discretionary";
+
+        modalBody.innerHTML = `
+          <!-- Meta Badges (category, year, status, reading_time_minutes, importance_rating) -->
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
+            <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+              ${law.category} (${law.year})
+            </span>
+            <span style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">
+              Status: <strong>${law.status}</strong>
+            </span>
+            <span style="background: rgba(255, 255, 255, 0.08); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">
+              ⏱️ ${law.reading_time_minutes} min read
+            </span>
+            <span style="background: rgba(200, 155, 83, 0.1); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">
+              ⭐ Impact: ${law.importance_rating}/5
+            </span>
+          </div>
+
+          <!-- Titles & Identifier (id, ra_number, plain_title, official_title) -->
+          <h2 style="color: var(--accent-gold); margin-bottom: 4px;">${law.ra_number}: ${law.plain_title}</h2>
+          <p class="official-title" style="color: var(--text-muted); font-style: italic; margin-bottom: 20px; font-size: 0.95rem;">
+            "${law.official_title}" &bull; <span style="font-style: normal; color: var(--text-muted); font-size: 0.85rem;">System ID #${law.id}</span>
+          </p>
+
+          <!-- Key Metadata Panel (enacting_president, total_sections, min_fine_php, target_audience) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: rgba(6, 13, 20, 0.6); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Enacting President</span>
+              <strong style="color: var(--text-main); font-size: 0.9rem;">${law.enacting_president}</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Total Sections</span>
+              <strong style="color: var(--text-main); font-size: 0.9rem;">${law.total_sections} Sections</strong>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Base Minimum Fine</span>
+              <strong style="color: var(--accent-gold); font-size: 0.9rem;">${formattedFine}</strong>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <span style="color: var(--text-muted); font-size: 0.8rem; display: block;">Target Audience</span>
+              <strong style="color: var(--text-main); font-size: 0.9rem;">${law.target_audience}</strong>
+            </div>
+          </div>
+          
+          <!-- Core Explanations (tldr_summary, full_breakdown, why_it_matters) -->
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Quick Summary (TL;DR)</h4>
+            <p style="color: var(--text-main); line-height: 1.6;">${law.tldr_summary}</p>
+          </div>
+
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Full Simplified Breakdown</h4>
+            <p style="color: var(--text-main); line-height: 1.6;">${law.full_breakdown}</p>
+          </div>
+
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Why It Matters</h4>
+            <p style="color: var(--text-main); line-height: 1.6;">${law.why_it_matters}</p>
+          </div>
+
+          <!-- Scenarios, Penalties & Gazette (example_scenario, penalties, source_url) -->
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Example Scenario</h4>
+            <p style="color: var(--text-main); line-height: 1.6;">${law.example_scenario}</p>
+          </div>
+
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Penalties & Violations</h4>
+            <p style="color: var(--text-main); line-height: 1.6;">${law.penalties}</p>
+          </div>
+
+          <div class="detail-section" style="margin-bottom: 20px;">
+            <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Official Source</h4>
+            <a href="${law.source_url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: underline;">Read official gazette filing &rarr;</a>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
+
+          <!-- Identifier 20: user_notes -->
+          <h3 style="color: var(--text-main); margin-bottom: 15px;">Community Notes & Tips</h3>
+          <div id="commentsList">
+            ${law.user_notes.length > 0 
+              ? law.user_notes.map((n, i) => `
+                  <div class="comment-bubble" data-index="${i}" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span><strong>${escapeHtml(n.user_name)}:</strong> ${escapeHtml(n.comment)}</span>
+                  </div>
+                `).join('') 
+              : '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>'}
+          </div>
+
+          <div class="comment-form">
+            <h4 style="color: var(--text-main); font-size: 1rem; margin-bottom: 10px;">Add a Note or Tip</h4>
+            <input type="text" id="userNameInput" placeholder="Your Name (e.g., Maria S.)">
+            <textarea id="userCommentInput" placeholder="Share a practical tip or explanation..." rows="3"></textarea>
+            <button id="submitCommentBtn">Post Note</button>
+          </div>
+        `;
+
+        modal.classList.remove("hidden");
+
+        // Save new notes to the backend
+        const submitBtn = document.getElementById("submitCommentBtn");
+        submitBtn.addEventListener("click", async () => {
+          const nameInput = document.getElementById("userNameInput").value.trim();
+          const commentInput = document.getElementById("userCommentInput").value.trim();
+          if (!nameInput || !commentInput) return;
+
+          try {
+            const res = await fetch(`/api/v1/laws/${law.id}/comments`, {
+              method: "POST",
+              headers: {
+                'x-api-key': API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ user_name: nameInput, comment: commentInput })
+            });
+            if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+            const data = await res.json();
+            law.user_notes = data.comments; // show the server's saved list
+            openModal(law);
+          } catch (err) {
+            console.error("Failed to post comment to backend:", err);
+            alert("Sorry, your note couldn't be saved. Please try again.");
+          }
+        });
+      }
+
+      // Close modal event listeners
+      if (closeModal) {
+        closeModal.addEventListener("click", () => modal.classList.add("hidden"));
+      }
+      window.addEventListener("click", (e) => {
+        if (e.target === modal) modal.classList.add("hidden");
+      });
+
+      // Close Modal on ESC key press
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+          modal.classList.add("hidden");
+        }
+      });
+
+      // Initial execution
+      fetchLaws();
+    });
+  </script>
+</body>
+</html>
