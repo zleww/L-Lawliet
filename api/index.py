@@ -46,7 +46,9 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=False,  # tokens travel in the Authorization header, not cookies
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    # X-API-Key is still accepted in CORS only because JurisCard and JustGiveupATP send it;
+    # the API ignores its value, so those sites are treated as guests.
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 
 
