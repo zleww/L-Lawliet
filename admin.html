@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <style>
+    .admin-wrap { max-width: 1200px; margin: 30px auto; padding: 0 16px; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-table th, .admin-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+    .admin-table th { color: var(--text-muted); font-weight: 600; }
+    .table-scroll { overflow-x: auto; }
+    .btn-small { background: transparent; color: var(--accent-gold); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 4px 10px; cursor: pointer; margin-right: 6px; }
+    .btn-danger { color: #e57373; border-color: #e57373; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .form-grid label { display: block; font-size: 0.8rem; color: var(--text-muted); }
+    .form-grid .wide { grid-column: 1 / -1; }
+    .comment-form select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-main); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Public site</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <main class="admin-wrap">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+      <h1 style="font-family: 'Playfair Display', serif;">Manage <span class="gold-text">Laws</span></h1>
+      <button id="addBtn" class="btn-gold">+ Add law</button>
+    </div>
+    <p id="pageMsg" role="status" style="margin-bottom: 12px; color: var(--accent-gold);"></p>
+
+    <form id="lawForm" class="comment-form hidden" style="margin-bottom: 24px;">
+      <h3 id="formTitle" style="margin-bottom: 12px;">Add law</h3>
+      <div class="form-grid" id="fields"></div>
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button type="submit" id="saveBtn">Save</button>
+        <button type="button" id="cancelBtn" style="background: transparent; color: var(--text-main); border: 1px solid var(--border-color);">Cancel</button>
+      </div>
+      <p id="formError" role="alert" style="color: #e57373; font-size: 0.85rem; margin-top: 10px;"></p>
+    </form>
+
+    <div class="table-scroll">
+      <table class="admin-table">
+        <thead><tr><th>ID</th><th>RA number</th><th>Plain title</th><th>Category</th><th>Year</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+        <tbody id="lawRows"><tr><td colspan="8">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const { getAuth, apiFetch, escapeHtml: e, errorMessage } = window.LawlietAuth;
+
+      // Page tidiness only: the API's require_admin (403) is the real protection.
+      const auth = getAuth();
+      if (!auth || auth.role !== "admin") { window.location.href = "login.html"; return; }
+
+      const CATEGORIES = ["Technology & Crime", "Finance & Taxes", "Governance & Business", "Social & Welfare", "Environment", "Education & Civil Rights"];
+      const FIELDS = [
+        ["ra_number", "RA number (e.g. RA 99999)", "text", 20],
+        ["year", "Year enacted", "number"],
+        ["official_title", "Official title", "text", 300, "wide"],
+        ["plain_title", "Plain title", "text", 200, "wide"],
+        ["category", "Category", "select", CATEGORIES],
+        ["status", "Status", "select", ["Active", "Amended", "Repealed"]],
+        ["reading_time_minutes", "Reading time (minutes, 1-120)", "number"],
+        ["importance_rating", "Importance (1-5)", "number"],
+        ["min_fine_php", "Minimum fine (PHP)", "number"],
+        ["total_sections", "Total sections", "number"],
+        ["enacting_president", "Enacting president", "text", 100],
+        ["target_audience", "Target audience", "text", 300],
+        ["source_url", "Source URL (https://...)", "text", 500, "wide"],
+        ["tldr_summary", "TL;DR summary", "textarea", 500],
+        ["full_breakdown", "Full breakdown", "textarea", 2000],
+        ["why_it_matters", "Why it matters", "textarea", 1000],
+        ["example_scenario", "Example scenario", "textarea", 1000],
+        ["penalties", "Penalties", "textarea", 1000],
+      ];
+
+      const form = document.getElementById("lawForm");
+      const fieldsBox = document.getElementById("fields");
+      const formError = document.getElementById("formError");
+      const pageMsg = document.getElementById("pageMsg");
+      let laws = [];
+      let editing = null; // the law being edited, or null when adding
+
+      fieldsBox.innerHTML = FIELDS.map(([name, label, type, opt, cls]) => {
+        let input;
+        if (type === "select") input = `<select name="${name}">${opt.map(o => `<option>${e(o)}</option>`).join("")}</select>`;
+        else if (type === "textarea") input = `<textarea name="${name}" rows="3" maxlength="${opt}"></textarea>`;
+        else input = `<input name="${name}" type="${type}" ${opt ? `maxlength="${opt}"` : ""}>`;
+        const wide = type === "textarea" ? "wide" : (cls || "");
+        return `<div class="${wide}"><label>${e(label)}</label>${input}</div>`;
+      }).join("");
+
+      function readForm() {
+        const out = {};
+        FIELDS.forEach(([name, , type]) => {
+          const raw = form.elements[name].value;
+          out[name] = type === "number" ? (raw === "" ? null : Number(raw)) : raw.trim();
+        });
+        return out;
+      }
+
+      function openForm(law) {
+        editing = law;
+        document.getElementById("formTitle").textContent = law ? `Edit ${law.ra_number}` : "Add law";
+        FIELDS.forEach(([name, , type, opt]) => {
+          form.elements[name].value = law ? law[name] : (type === "select" ? opt[0] : "");
+        });
+        formError.textContent = "";
+        form.classList.remove("hidden");
+        form.scrollIntoView({ behavior: "smooth" });
+      }
+
+      async function load() {
+        const res = await apiFetch("/api/v1/laws");
+        if (!res.ok) { pageMsg.textContent = await errorMessage(res); return; }
+        laws = (await res.json()).laws;
+        document.getElementById("lawRows").innerHTML = laws.map(l => `
+          <tr>
+            <td>${e(l.id)}</td><td>${e(l.ra_number)}</td><td>${e(l.plain_title)}</td>
+            <td>${e(l.category)}</td><td>${e(l.year)}</td><td>${e(l.status)}</td>
+            <td style="color: var(--text-muted);">${e(new Date(l.updated_at).toLocaleString())}</td>
+            <td style="white-space: nowrap;">
+              <button class="btn-small" data-edit="${e(l.id)}">Edit</button>
+              <button class="btn-small btn-danger" data-delete="${e(l.id)}">Delete</button>
+            </td>
+          </tr>`).join("") || `<tr><td colspan="8">No laws.</td></tr>`;
+      }
+
+      document.getElementById("addBtn").addEventListener("click", () => openForm(null));
+      document.getElementById("cancelBtn").addEventListener("click", () => form.classList.add("hidden"));
+
+      document.getElementById("lawRows").addEventListener("click", async (ev) => {
+        const editId = ev.target.dataset.edit;
+        const deleteId = ev.target.dataset.delete;
+        if (editId) openForm(laws.find(l => String(l.id) === editId));
+        if (deleteId) {
+          const law = laws.find(l => String(l.id) === deleteId);
+          if (!confirm(`Delete ${law.ra_number} and all its community notes? This cannot be undone.`)) return;
+          const res = await apiFetch(`/api/v1/laws/${encodeURIComponent(deleteId)}`, { method: "DELETE" });
+          pageMsg.textContent = res.status === 204 ? `Deleted ${law.ra_number}.` : await errorMessage(res);
+          load();
+        }
+      });
+
+      form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        formError.textContent = "";
+        const values = readForm();
+        let body = values, url = "/api/v1/laws", method = "POST";
+
+        if (editing) { // PATCH sends only the fields that changed
+          body = {};
+          Object.keys(values).forEach(k => { if (values[k] !== editing[k]) body[k] = values[k]; });
+          if (Object.keys(body).length === 0) { formError.textContent = "Nothing changed."; return; }
+          url = `/api/v1/laws/${encodeURIComponent(editing.id)}`;
+          method = "PATCH";
+        }
+
+        const res = await apiFetch(url, { method, body: JSON.stringify(body) });
+        if (!res.ok) { formError.textContent = await errorMessage(res); return; }
+        const saved = await res.json();
+        pageMsg.textContent = editing ? `Updated ${saved.ra_number}.` : `Created ${saved.ra_number} with ID ${saved.id}.`;
+        form.classList.add("hidden");
+        load();
+      });
+
+      load();
+    });
+  </script>
+</body>
+</html>
