@@ -1,0 +1,18 @@
+# Files that must not be deployed. Vercel serves every file outside api/ as a
+# public static asset, so anything listed here would otherwise be downloadable.
+# requirements.txt stays: Vercel needs it to install the Python packages.
+
+# One-time and local-only scripts (schema, grants, seed data, dev server, tests)
+/scripts
+
+# Project notes and tooling, not part of the website
+/CLAUDE.md
+/INSTALLED-SKILLS.md
+/README.md
+/graphify-out
+/.claude
+/.vscode
+
+# Local secrets (also git-ignored, listed here as a second guard)
+.env
+.env.*
