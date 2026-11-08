@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Log In - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+  </nav>
+
+  <main style="max-width: 420px; margin: 60px auto; padding: 0 16px;">
+    <h1 style="font-family: 'Playfair Display', serif; margin-bottom: 8px;">Log in to <span class="gold-text">L-Lawliet</span></h1>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Guests can read 10 laws. Log in to read all of them and add community notes.</p>
+
+    <p id="notice" style="display: none; color: var(--accent-gold); margin-bottom: 12px;"></p>
+
+    <form id="loginForm" class="comment-form" autocomplete="on">
+      <label for="username" style="font-size: 0.85rem; color: var(--text-muted);">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" required maxlength="50">
+      <label for="password" style="font-size: 0.85rem; color: var(--text-muted);">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200">
+      <button type="submit" id="loginBtn" style="width: 100%;">Log in</button>
+      <p id="loginError" role="alert" style="color: #e57373; font-size: 0.85rem; margin-top: 10px;"></p>
+    </form>
+
+    <button id="guestBtn" class="btn-dark" style="width: 100%; margin-top: 12px; border: 1px solid var(--border-color);">Continue as guest</button>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const { setAuth, signOut, errorMessage } = window.LawlietAuth;
+      const form = document.getElementById("loginForm");
+      const errorBox = document.getElementById("loginError");
+      const btn = document.getElementById("loginBtn");
+
+      if (new URLSearchParams(location.search).get("expired")) {
+        const notice = document.getElementById("notice");
+        notice.textContent = "Your login expired. Please log in again.";
+        notice.style.display = "block";
+      }
+
+      form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        errorBox.textContent = "";
+        btn.disabled = true;
+        try {
+          const res = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.getElementById("username").value.trim(),
+              password: document.getElementById("password").value,
+            }),
+          });
+          if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
+          const data = await res.json();
+          setAuth({ token: data.token, username: data.username, role: data.role });
+          window.location.href = data.role === "admin" ? "admin.html" : "index.html";
+        } catch (err) {
+          console.error(err);
+          errorBox.textContent = "Could not reach the server. Please try again.";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      document.getElementById("guestBtn").addEventListener("click", () => {
+        signOut();
+        window.location.href = "index.html";
+      });
+    });
+  </script>
+</body>
+</html>

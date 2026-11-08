@@ -92,19 +92,19 @@
           <img src="images/tech-icon.png" alt="Tech" class="cat-icon-img" />
           <h4>Technology & Crime</h4>
           <p>Cybercrime, data privacy, and more.</p>
-          <span class="law-count">2 Laws</span>
+          <span class="law-count" data-count-category="Technology &amp; Crime">&nbsp;</span>
         </div>
         <div class="category-card light-card">
           <img src="images/finance-icon.png" alt="Finance" class="cat-icon-img" />
           <h4>Finance & Taxes</h4>
           <p>Tax rules, revenue laws, and financial matters.</p>
-          <span class="law-count">1 Law</span>
+          <span class="law-count" data-count-category="Finance &amp; Taxes">&nbsp;</span>
         </div>
         <div class="category-card light-card">
           <img src="images/gov-icon.png" alt="Governance" class="cat-icon-img" />
           <h4>Governance & Business</h4>
           <p>Government transactions, permits, and regulations.</p>
-          <span class="law-count">6 Laws</span>
+          <span class="law-count" data-count-category="Governance &amp; Business">&nbsp;</span>
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@
     <div class="stat-item">
       <img src="images/stat-books.png" alt="Books" class="stat-icon-img" />
       <div class="stat-text">
-        <h4>20+</h4>
+        <h4 id="statTotalLaws">&nbsp;</h4>
         <p>Republic Acts<br>Explained in plain English</p>
       </div>
     </div>
@@ -182,6 +182,8 @@
     </div>
   </div>
 
+  <script src="auth.js"></script>
+  <script src="laws-ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
