@@ -133,11 +133,11 @@
     });
   }
 
-  // "Showing 10 of 30. Log in to see all." for guests.
+  // Guest notice, e.g. "Guest view: you can read the first 10 of 30 laws. Log in to see all."
   function accessBanner(data) {
     if (data.access !== "guest") return "";
     return `<p style="grid-column: 1/-1; background: rgba(200,155,83,0.12); border: 1px solid var(--accent-gold); color: var(--text-main); padding: 12px 16px; border-radius: 8px;">
-      Showing ${e(data.count)} of ${e(data.total)} laws. <a href="login.html" style="color: var(--accent-gold); font-weight: 600;">Log in to see all.</a>
+      Guest view: you can read the first ${e(data.guest_limit)} of ${e(data.total)} laws. <a href="login.html" style="color: var(--accent-gold); font-weight: 600;">Log in to see all.</a>
     </p>`;
   }
 

@@ -80,6 +80,13 @@ def access_level(user: Optional[dict]) -> str:
     return "full" if user else "guest"
 
 
+def access_info(user: Optional[dict]) -> dict:
+    info = {"access": access_level(user)}
+    if user is None:
+        info["guest_limit"] = db.GUEST_PREVIEW_SIZE
+    return info
+
+
 # ==========================================================
 # HEALTH CHECK (Public)
 # ==========================================================
@@ -125,7 +132,7 @@ def search_laws(
     conn=Depends(db.get_db),
 ):
     laws, total = db.list_laws(conn, guest=user is None, search=q.strip())
-    return {"query": q, "count": len(laws), "total": total, "access": access_level(user), "results": laws}
+    return {"query": q, "count": len(laws), "total": total, **access_info(user), "results": laws}
 
 
 # ==========================================================
@@ -142,7 +149,7 @@ def get_laws(
     laws, total = db.list_laws(
         conn, guest=user is None, category=category, search=(search or "").strip() or None
     )
-    return {"count": len(laws), "total": total, "access": access_level(user), "laws": laws}
+    return {"count": len(laws), "total": total, **access_info(user), "laws": laws}
 
 
 # ==========================================================
