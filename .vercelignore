@@ -5,6 +5,8 @@
 # One-time and local-only scripts (schema, grants, seed data, dev server, tests)
 /scripts
 /tests
+/requirements-dev.txt
+/report-screenshots
 
 # Project notes and tooling, not part of the website
 /CLAUDE.md
