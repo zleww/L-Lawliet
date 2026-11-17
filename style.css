@@ -681,3 +681,136 @@ body {
 .status-chip.pending { border-color: var(--accent-gold); color: var(--accent-gold); }
 .suggest-link { grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; margin-top: 8px; }
 .suggest-link a { color: var(--accent-gold); font-weight: 600; }
+
+/* ==========================================================
+   Phone layout, refined (max-width: 600px).
+   One spacing scale (16px gutters, 12/16/24/40 spacing), one type scale, compact rows
+   instead of tall centred boxes. Desktop and tablet are unchanged.
+   ========================================================== */
+.nav-label { display: none; }
+
+@media (max-width: 900px) {
+  /* Account part of the menu: one row per destination, Sign Out as a full-width button */
+  .nav-open .nav-auth {
+    flex-direction: column !important; align-items: stretch !important; gap: 0 !important; padding: 0 !important;
+  }
+  .nav-open .nav-auth .nav-item {
+    display: flex !important; justify-content: space-between; align-items: center;
+    padding: 14px 4px; border-bottom: 1px solid var(--border-color);
+    color: var(--text-main) !important; font-size: 1rem !important; text-decoration: none !important;
+  }
+  .nav-open .nav-auth .nav-label { display: inline; }
+  .nav-open .nav-auth .nav-name, .nav-open .nav-auth .nav-icon { color: var(--text-muted); font-size: 0.9rem; }
+  .nav-open .nav-auth .btn-signin { width: 100%; margin-top: 16px; padding: 12px; }
+}
+
+@media (max-width: 600px) {
+  html { font-size: 15px; }
+  body { line-height: 1.55; }
+
+  /* Page headers */
+  .hero { padding: 32px 16px 24px !important; }
+  #heroSection { padding: 44px 16px 52px !important; }
+  .hero h1 { font-size: 2.15rem; margin-bottom: 14px; }
+  .hero p { font-size: 1rem; margin-bottom: 22px; }
+  .hero-content { max-width: 100%; }
+  .popular-tags { line-height: 2; }
+  .popular-tags span { margin-left: 0; margin-right: 12px; display: inline-block; }
+
+  /* Home: features as a tidy 2 x 2 grid */
+  .features-banner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; padding: 28px 16px;
+  }
+  .feature-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .icon-img { height: 28px; }
+  .feature-text h4 { font-size: 1rem; }
+  .feature-text p { font-size: 0.85rem; line-height: 1.4; }
+
+  /* Home: category cards become compact rows (icon left, text left) */
+  .browse-category { padding: 40px 16px; }
+  .browse-layout { gap: 24px; }
+  .browse-sidebar { min-width: 0; }
+  .browse-sidebar h2 { font-size: 1.8rem; }
+  .browse-sidebar p { margin-bottom: 18px; }
+  .category-cards-row { grid-template-columns: 1fr; gap: 12px; }
+  .light-card {
+    display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; align-items: center;
+    text-align: left; padding: 16px; border-radius: 10px;
+  }
+  .light-card:hover { transform: none; }
+  .light-card .cat-icon-img { grid-row: 1 / span 3; height: 36px; margin: 0; justify-self: center; }
+  .light-card h4 { margin: 0 0 2px; font-size: 1.1rem; }
+  .light-card p { margin: 0 0 4px; }
+
+  /* Home: featured law */
+  .featured-law { padding: 44px 16px; }
+  .featured-layout { gap: 24px; }
+  .featured-content h2 { font-size: 1.9rem; }
+  .featured-content p { margin-bottom: 20px; }
+  .featured-list-box { padding: 20px; max-width: 100%; }
+  .check-list { margin: 14px 0 18px; }
+
+  /* Home: stats as a 2 x 2 grid with one number size */
+  .stats-banner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px 16px; padding: 32px 16px;
+  }
+  .stat-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .stat-icon-img { height: 30px; }
+  .stat-text h4 { font-size: 1.35rem; line-height: 1.2; }
+  .stat-text p { font-size: 0.8rem; }
+
+  /* Law cards and lists */
+  .content-wrapper { margin: 24px 0 40px !important; padding: 0 16px; }
+  .content-wrapper > div[style*="grid"] { gap: 16px !important; }
+  .grid { gap: 12px; }
+  .card { padding: 18px; border-radius: 10px; }
+  .card h3 { margin-bottom: 2px; }
+  .card h4 { font-size: 1.05rem; margin-bottom: 6px; }
+  .card .summary { margin-bottom: 10px; }
+
+  /* Categories page: same compact rows as the home page */
+  .cat-card {
+    display: grid !important; grid-template-columns: 44px 1fr; column-gap: 14px;
+    text-align: left !important; padding: 16px !important; align-items: start;
+  }
+  .cat-card > :first-child {  /* the icon: an image or an emoji */
+    grid-row: 1 / span 3; margin: 2px 0 0 !important; justify-self: center;
+  }
+  .cat-card > img { height: 36px !important; }
+  .cat-card > span:first-child { font-size: 1.9rem !important; line-height: 1; }
+  .cat-card h3 { font-size: 1.15rem !important; margin-bottom: 4px !important; }
+  .cat-card p { font-size: 0.9rem !important; margin-bottom: 8px !important; }
+
+  /* About and Resources: less padding so the text has room */
+  .info-card { padding: 20px !important; }
+  .info-card h3 { font-size: 1.4rem !important; margin-bottom: 10px !important; }
+
+  /* Browse: category filters scroll sideways in one line */
+  .filter-section { padding: 0 0 16px !important; }
+  #categoryFilters {
+    flex-wrap: nowrap !important; overflow-x: auto; gap: 8px !important;
+    padding: 2px 16px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  #categoryFilters::-webkit-scrollbar { display: none; }
+  .filter-btn { flex: 0 0 auto; white-space: nowrap; }
+
+  /* Forms: full-width buttons, comfortable fields, less nested padding */
+  .settings-wrap { margin: 20px auto 40px; }
+  .settings-section { margin-top: 32px; }
+  .settings-section h2 { font-size: 1.25rem; }
+  .comment-form { padding: 16px; }
+  .comment-form input, .comment-form textarea, .comment-form select { padding: 12px; font-size: 1rem; }
+  .comment-form > button, .comment-form > div > button, .comment-form button[type="submit"] { width: 100%; padding: 12px; }
+  .note-edit button, .report-form button { width: auto; }
+  .swatches label { padding: 8px 12px; }
+
+  /* Profile */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-box { min-width: 0; }
+  .list-card { padding: 14px; }
+
+  /* Law pop-up */
+  .law-engage { flex-direction: column; align-items: stretch; }
+  .save-btn { width: 100%; padding: 10px; }
+  .modal-content h2 { font-size: 1.3rem; }
+}
