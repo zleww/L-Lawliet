@@ -14,7 +14,7 @@ os.chdir(ROOT)
 
 import uvicorn
 from fastapi import HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from index import app
 
@@ -24,6 +24,12 @@ PUBLIC_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".
 @app.get("/", include_in_schema=False)
 def home():
     return FileResponse(os.path.join(ROOT, "index.html"))
+
+
+@app.get("/docs", include_in_schema=False)
+def docs_redirect():
+    # Same as the redirect in vercel.json: /docs -> Swagger UI at /api/docs
+    return RedirectResponse("/api/docs")
 
 
 @app.get("/{path:path}", include_in_schema=False)
