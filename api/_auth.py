@@ -7,13 +7,19 @@ from typing import Optional
 import bcrypt
 import jwt
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 
 import _db as db
 
 log = logging.getLogger("lawliet.auth")
 
-bearer = HTTPBearer(auto_error=False)
+# Two ways to send the same "Authorization: Bearer <token>" header. Both show in Swagger's
+# Authorize dialog: OAuth2 asks for a username and password and fetches the token itself;
+# HTTPBearer takes a pasted token (needed for Google accounts, which have no password).
+oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False,
+                              scheme_name="Log in with username and password")
+bearer = HTTPBearer(auto_error=False, scheme_name="Paste a token",
+                    description="A token from POST /api/v1/auth/login or Google sign-in.")
 ALGORITHM = "HS256"
 
 # Compared against when the username does not exist, so both failure paths take similar time.
@@ -79,6 +85,7 @@ def _unauthorized(detail: str) -> HTTPException:
 
 
 def optional_user(
+    token: Optional[str] = Depends(oauth2),
     creds: Optional[HTTPAuthorizationCredentials] = Depends(bearer),
     conn=Depends(db.get_db),
 ) -> Optional[dict]:
@@ -86,11 +93,12 @@ def optional_user(
     A valid token is checked against the account: deleted accounts and tokens from before
     "log out of all devices" or a password change are refused. Role comes from the database,
     not from the token."""
-    if creds is None:
+    raw = token or (creds.credentials if creds else None)
+    if not raw:
         return None
     try:
         claims = jwt.decode(
-            creds.credentials, _secret(), algorithms=[ALGORITHM],
+            raw, _secret(), algorithms=[ALGORITHM],
             options={"require": ["exp", "sub", "role"]},
         )
         user_id = int(claims["sub"])

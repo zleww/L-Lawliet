@@ -23,6 +23,7 @@ import psycopg2
 from psycopg2 import errors as pg_errors
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 
 import _db as db
@@ -163,21 +164,38 @@ def register(payload: RegisterRequest, conn=Depends(db.get_db)):
     return session_response(account)
 
 
-@app.post("/api/v1/auth/login", tags=["Auth"])
-def login(payload: LoginRequest, conn=Depends(db.get_db)):
-    found = db.get_user_by_username(conn, payload.username)
+def password_login(conn, username: str, password: str) -> dict:
+    """Shared by the JSON login and Swagger's Authorize form. Lockout after 5 wrong passwords."""
+    found = db.get_user_by_username(conn, username)
     if found and found["is_locked"]:
         raise HTTPException(
             status_code=429,
             detail=f"Too many failed attempts. Try again in {found['minutes_left']} minute(s).",
         )
-    if not check_password(payload.password, found["password_hash"] if found else None):
+    if not check_password(password, found["password_hash"] if found else None):
         if found:
             db.record_failed_login(conn, found)
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     if found["failed_logins"] or found["locked_until"]:
         db.clear_failed_logins(conn, found)
-    return session_response(db.get_user_by_id(conn, found["id"]))
+    return db.get_user_by_id(conn, found["id"])
+
+
+@app.post("/api/v1/auth/login", tags=["Auth"])
+def login(payload: LoginRequest, conn=Depends(db.get_db)):
+    return session_response(password_login(conn, payload.username, payload.password))
+
+
+@app.post("/api/v1/auth/token", tags=["Auth"])
+def login_form(form: OAuth2PasswordRequestForm = Depends(), conn=Depends(db.get_db)):
+    """Used by Swagger's Authorize button (OAuth2 password flow, form fields username and
+    password). Same accounts, rules and lockout as /api/v1/auth/login."""
+    username, password = form.username.strip(), form.password
+    if not 1 <= len(username) <= 50 or not 1 <= len(password) <= 200:
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    account = password_login(conn, username, password)
+    return {"access_token": create_token(account), "token_type": "bearer",
+            "username": account["username"], "role": account["role"]}
 
 
 def _username_from_email(conn, email: str) -> str:
