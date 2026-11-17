@@ -176,6 +176,22 @@ check("C-05", "editing a note that does not exist -> 404", s == 404, f"{s} {b}")
 s, b = call("PATCH", f"/api/v1/comments/{note_id}", {"comment": "   "}, token=alice_token)
 check("C-06", "blank note text -> 422", s == 422, f"{s} {b}")
 
+s, b = call("DELETE", f"/api/v1/comments/{note_id}", token=bob_token)
+check("C-07", "another user deletes alice's note -> 403", s == 403, f"{s} {b}")
+
+s, b = call("DELETE", f"/api/v1/comments/{note_id}")
+check("C-08", "a guest deletes a note -> 401", s == 401, f"{s} {b}")
+
+s, b = call("DELETE", "/api/v1/comments/99999999", token=alice_token)
+check("C-09", "deleting a note that does not exist -> 404", s == 404, f"{s} {b}")
+
+s, b = call("POST", "/api/v1/laws/1/comments", {"user_name": "Alice B.", "comment": f"Note to delete {RUN}"}, token=alice_token)
+temp = next((n for n in (b or {}).get("comments", []) if n["comment"] == f"Note to delete {RUN}"), None) if s == 201 else None
+s, b = call("DELETE", f"/api/v1/comments/{temp['id'] if temp else 0}", token=alice_token)
+s2, b2 = call("GET", "/api/v1/laws/1", token=alice_token)
+gone = all(n["comment"] != f"Note to delete {RUN}" for n in (b2 or {}).get("user_notes", []))
+check("C-10", "author deletes own note -> 204 and it is gone", s == 204 and gone, f"{s} gone={gone}")
+
 # ----------------------------------------------------------------------
 print("--- Delete account")
 s, b = call("DELETE", "/api/v1/me", {"confirm": "someone-else", "password": new_password}, token=alice_token)
@@ -220,6 +236,10 @@ if admin_user and admin_pw:
     check("M-01", "admin create / update / delete a law -> 201 / 200 / 204", (s1, s2, s3) == (201, 200, 204), f"{s1} {s2} {s3}")
     s, b = call("DELETE", "/api/v1/me", {"confirm": admin_user, "password": admin_pw}, token=admin_token)
     check("M-02", "the only admin cannot delete their account -> 409", s == 409, f"{s} {b}")
+    s, b = call("POST", "/api/v1/laws/1/comments", {"user_name": "Bob", "comment": f"Moderate me {RUN}"}, token=bob_token)
+    bob_note = next((n for n in (b or {}).get("comments", []) if n["comment"] == f"Moderate me {RUN}"), None) if s == 201 else None
+    s, b = call("DELETE", f"/api/v1/comments/{bob_note['id'] if bob_note else 0}", token=admin_token)
+    check("M-03", "an admin can delete another user's note -> 204", s == 204, f"{s} {b}")
 else:
     print("--- Admin checks skipped (set TEST_ADMIN_USERNAME and TEST_ADMIN_PASSWORD to run them)")
 
@@ -278,6 +298,17 @@ else:
         check("R-07", "a user cannot delete other accounts (0 rows)", r == 0, r)
         r = attempt("UPDATE users SET bio = 'x' WHERE id = %s", (bob_id,), user_id=bob_id, role="user")
         check("R-08", "a user can still change their own profile (1 row)", r == 1, r)
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM pg_policies WHERE policyname = 'comments_delete_own'")
+            has_delete_policy = cur.fetchone()[0] == 1
+        conn.rollback()
+        if has_delete_policy:
+            r = attempt("DELETE FROM comments WHERE id = %s", (other_comment,), user_id=bob_id, role="user")
+            check("R-09", "a user cannot delete someone else's comment in SQL (0 rows)", r == 0, r)
+            r = attempt("DELETE FROM comments WHERE id = %s", (other_comment,), user_id=bob_id, role="admin")
+            check("R-10", "an admin can delete any comment (1 row, rolled back)", r == 1, r)
+        else:
+            print("  R-09/R-10 skipped: run scripts/migrate_004_comment_delete.sql")
     conn.close()
 
 # ----------------------------------------------------------------------

@@ -255,6 +255,17 @@ def update_comment(conn, comment_id: int, actor: dict, text: str):
     return get_law(conn, row["law_id"])["user_notes"] if row else None
 
 
+def delete_comment(conn, comment_id: int, actor: dict) -> bool:
+    """The route checks author-or-admin first; the comments_delete_own policy
+    (migration 004) makes PostgreSQL refuse anyone else's row as well."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("DELETE FROM comments WHERE id = %s RETURNING id", (comment_id,))
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
 # ----------------------------------------------------------------------
 # Users
 # ----------------------------------------------------------------------

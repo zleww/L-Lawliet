@@ -83,8 +83,11 @@
               <div class="comment-bubble" style="margin-bottom: 10px;" data-note-id="${e(n.id)}">
                 <span><strong>${e(n.user_name)}:</strong> <span class="note-text">${e(n.comment)}</span></span>
                 ${n.edited_at ? '<span class="note-edited">(edited)</span>' : ""}
-                ${auth && auth.id != null && n.user_id === auth.id
-                  ? '<span class="note-actions"><button type="button" class="note-edit-btn">Edit</button></span>'
+                ${auth && auth.id != null && (n.user_id === auth.id || auth.role === "admin")
+                  ? `<span class="note-actions">
+                       ${n.user_id === auth.id ? '<button type="button" class="note-edit-btn">Edit</button>' : ""}
+                       <button type="button" class="note-delete-btn">Delete</button>
+                     </span>`
                   : ""}
               </div>`).join("")
           : '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>'}
@@ -140,6 +143,24 @@
           ev.target.disabled = false;
         }
       });
+    }));
+
+    // Delete your own note (admins can delete any). The server checks again.
+    modalBody.querySelectorAll(".note-delete-btn").forEach(btn => btn.addEventListener("click", async () => {
+      const noteId = Number(btn.closest(".comment-bubble").dataset.noteId);
+      if (!confirm("Delete this note? This cannot be undone.")) return;
+      btn.disabled = true;
+      try {
+        const res = await apiFetch(`/api/v1/comments/${encodeURIComponent(noteId)}`, { method: "DELETE" });
+        if (res.status !== 204) { alert(await errorMessage(res)); return; }
+        law.user_notes = notes.filter(n => n.id !== noteId);
+        openModal(law, modal, modalBody);
+      } catch (err) {
+        console.error("Failed to delete note:", err);
+        alert("Sorry, the note couldn't be deleted. Please try again.");
+      } finally {
+        btn.disabled = false;
+      }
     }));
 
     const submitBtn = document.getElementById("submitCommentBtn");

@@ -374,3 +374,18 @@ def edit_comment(
     if comments is None:  # the comments_update_own policy refused the row
         raise HTTPException(status_code=403, detail="You can only edit your own notes.")
     return {"message": "Note updated.", "comments": comments}
+
+
+# ==========================================================
+# DELETE A COMMENT (the author, or an admin)
+# ==========================================================
+@app.delete("/api/v1/comments/{comment_id}", status_code=204, tags=["Comments"])
+def delete_comment(comment_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    found = db.get_comment(conn, comment_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Note not found.")
+    if found["user_id"] != user["id"] and user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="You can only delete your own notes.")
+    if not db.delete_comment(conn, comment_id, user):  # the comments_delete_own policy refused it
+        raise HTTPException(status_code=403, detail="You can only delete your own notes.")
+    return Response(status_code=204)
