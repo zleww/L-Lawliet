@@ -1,7 +1,7 @@
 """Pydantic request models. Limits match the CHECK constraints in scripts/schema.sql."""
 from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 Category = Literal[
     "Technology & Crime",
@@ -89,3 +89,94 @@ class CommentSubmission(BaseModel):
 class LoginRequest(BaseModel):
     username: Text(1, 50)
     password: str = Field(min_length=1, max_length=200)
+
+
+# ----------------------------------------------------------------------
+# Accounts
+# ----------------------------------------------------------------------
+Username = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=3, max_length=30, pattern=r"^[A-Za-z0-9_.]+$")
+]
+Theme = Literal["dark", "light"]
+Accent = Literal["gold", "blue", "green", "rose"]
+
+
+def check_password_rules(password: str) -> str:
+    """Password rules: 8+ characters, at least one letter and one number, and at most
+    72 bytes (bcrypt ignores anything after 72 bytes, so longer passwords are refused)."""
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters.")
+    if len(password.encode()) > 72:
+        raise ValueError("Password must be at most 72 bytes (about 72 characters).")
+    if not any(ch.isalpha() for ch in password) or not any(ch.isdigit() for ch in password):
+        raise ValueError("Password must contain at least one letter and one number.")
+    return password
+
+
+class RegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: Username
+    password: str = Field(max_length=200)
+    display_name: Optional[Text(1, 100)] = None
+
+    @field_validator("password")
+    @classmethod
+    def strong_password(cls, value: str) -> str:
+        return check_password_rules(value)
+
+    @model_validator(mode="after")
+    def password_not_username(self):
+        if self.password.lower() == self.username.lower():
+            raise ValueError("Password cannot be the same as the username.")
+        return self
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(min_length=20, max_length=4096)  # the ID token from Google's button
+
+
+class ProfileUpdate(BaseModel):
+    """Every field optional, at least one required. An empty bio clears it."""
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Optional[Text(1, 100)] = None
+    bio: Optional[Text(0, 300)] = None
+    theme: Optional[Theme] = None
+    accent: Optional[Accent] = None
+
+    @model_validator(mode="after")
+    def at_least_one_non_null_field(self):
+        sent = self.model_dump(exclude_unset=True)
+        if not sent:
+            raise ValueError("Send at least one field to update.")
+        nulls = [name for name, value in sent.items() if value is None]
+        if nulls:
+            raise ValueError(f"These fields cannot be null: {', '.join(nulls)}")
+        return self
+
+
+class PasswordChange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(max_length=200)
+
+    @field_validator("new_password")
+    @classmethod
+    def strong_password(cls, value: str) -> str:
+        return check_password_rules(value)
+
+
+class DeleteAccountRequest(BaseModel):
+    """confirm must be the account's username. password is required if the account has one."""
+    model_config = ConfigDict(extra="forbid")
+
+    confirm: str = Field(min_length=1, max_length=50)
+    password: Optional[str] = Field(default=None, max_length=200)
+
+
+class CommentEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    comment: Text(1, 1000)

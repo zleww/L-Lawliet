@@ -21,18 +21,46 @@
   </nav>
 
   <main style="max-width: 420px; margin: 60px auto; padding: 0 16px;">
-    <h1 style="font-family: 'Playfair Display', serif; margin-bottom: 8px;">Log in to <span class="gold-text">L-Lawliet</span></h1>
-    <p style="color: var(--text-muted); margin-bottom: 20px;">Guests can read 10 laws. Log in to read all of them and add community notes.</p>
+    <h1 style="font-family: 'Playfair Display', serif; margin-bottom: 8px;">Welcome to <span class="gold-text">L-Lawliet</span></h1>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Guests can read 10 laws. Log in or create a free account to read all of them and add community notes.</p>
 
     <p id="notice" style="display: none; color: var(--accent-gold); margin-bottom: 12px;"></p>
 
-    <form id="loginForm" class="comment-form" autocomplete="on">
-      <label for="username" style="font-size: 0.85rem; color: var(--text-muted);">Username</label>
+    <!-- Google's own button is drawn here when Google sign-in is set up (GOOGLE_CLIENT_ID). -->
+    <div id="googleBox" style="display: none;">
+      <div id="googleBtn" style="display: flex; justify-content: center; min-height: 44px;"></div>
+      <p id="googleError" role="alert" class="form-error" style="text-align: center;"></p>
+      <div class="or-divider">or use a username</div>
+    </div>
+
+    <div class="auth-tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true" aria-controls="loginForm">Log in</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false" aria-controls="signupForm">Create account</button>
+    </div>
+
+    <form id="loginForm" class="comment-form" autocomplete="on" style="margin-top: 0;">
+      <label for="username" class="field-label">Username</label>
       <input id="username" name="username" type="text" autocomplete="username" required maxlength="50">
-      <label for="password" style="font-size: 0.85rem; color: var(--text-muted);">Password</label>
+      <label for="password" class="field-label">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200">
       <button type="submit" id="loginBtn" style="width: 100%;">Log in</button>
-      <p id="loginError" role="alert" style="color: #e57373; font-size: 0.85rem; margin-top: 10px;"></p>
+      <p id="loginError" role="alert" class="form-error"></p>
+    </form>
+
+    <form id="signupForm" class="comment-form hidden" autocomplete="on" style="margin-top: 0;">
+      <label for="newUsername" class="field-label">Username</label>
+      <input id="newUsername" name="username" type="text" autocomplete="username" required
+             minlength="3" maxlength="30" pattern="[A-Za-z0-9_.]+">
+      <p class="field-hint">3 to 30 letters, numbers, dots or underscores.</p>
+      <label for="newDisplayName" class="field-label">Display name (optional)</label>
+      <input id="newDisplayName" name="display_name" type="text" autocomplete="name" maxlength="100">
+      <label for="newPassword" class="field-label">Password</label>
+      <input id="newPassword" name="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+      <p class="field-hint">At least 8 characters, with a letter and a number.</p>
+      <label for="newPassword2" class="field-label">Confirm password</label>
+      <input id="newPassword2" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+      <button type="submit" id="signupBtn" style="width: 100%;">Create account</button>
+      <p id="signupError" role="alert" class="form-error"></p>
     </form>
 
     <button id="guestBtn" class="btn-dark" style="width: 100%; margin-top: 12px; border: 1px solid var(--border-color);">Continue as guest</button>
@@ -41,46 +69,124 @@
   <script src="auth.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const { setAuth, signOut, errorMessage } = window.LawlietAuth;
-      const form = document.getElementById("loginForm");
-      const errorBox = document.getElementById("loginError");
-      const btn = document.getElementById("loginBtn");
+      const { saveSession, signOut, errorMessage } = window.LawlietAuth;
+      const params = new URLSearchParams(location.search);
 
-      if (new URLSearchParams(location.search).get("expired")) {
+      function done(data) {
+        saveSession(data);
+        window.location.href = data.role === "admin" ? "admin.html" : "index.html";
+      }
+
+      if (params.get("expired") || params.get("signedout")) {
         const notice = document.getElementById("notice");
-        notice.textContent = "Your login expired. Please log in again.";
+        notice.textContent = params.get("expired")
+          ? "Your login expired. Please log in again."
+          : "You have been logged out.";
         notice.style.display = "block";
       }
 
-      form.addEventListener("submit", async (ev) => {
-        ev.preventDefault();
+      // ---- Tabs ----
+      const tabs = { login: document.getElementById("tabLogin"), signup: document.getElementById("tabSignup") };
+      const forms = { login: document.getElementById("loginForm"), signup: document.getElementById("signupForm") };
+      function showTab(name) {
+        for (const key of Object.keys(tabs)) {
+          tabs[key].setAttribute("aria-selected", String(key === name));
+          forms[key].classList.toggle("hidden", key !== name);
+        }
+      }
+      tabs.login.addEventListener("click", () => showTab("login"));
+      tabs.signup.addEventListener("click", () => showTab("signup"));
+      if (params.get("signup")) showTab("signup");
+
+      // ---- Username + password ----
+      async function submit(form, btn, errorBox, url, body) {
         errorBox.textContent = "";
         btn.disabled = true;
         try {
-          const res = await fetch("/api/v1/auth/login", {
+          const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username: document.getElementById("username").value.trim(),
-              password: document.getElementById("password").value,
-            }),
+            body: JSON.stringify(body),
           });
           if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
-          const data = await res.json();
-          setAuth({ token: data.token, username: data.username, role: data.role });
-          window.location.href = data.role === "admin" ? "admin.html" : "index.html";
+          done(await res.json());
         } catch (err) {
           console.error(err);
           errorBox.textContent = "Could not reach the server. Please try again.";
         } finally {
           btn.disabled = false;
         }
+      }
+
+      forms.login.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        submit(forms.login, document.getElementById("loginBtn"), document.getElementById("loginError"),
+          "/api/v1/auth/login", {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value,
+          });
+      });
+
+      forms.signup.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const errorBox = document.getElementById("signupError");
+        const password = document.getElementById("newPassword").value;
+        if (password !== document.getElementById("newPassword2").value) {
+          errorBox.textContent = "The two passwords do not match.";
+          return;
+        }
+        const body = { username: document.getElementById("newUsername").value.trim(), password };
+        const displayName = document.getElementById("newDisplayName").value.trim();
+        if (displayName) body.display_name = displayName;
+        submit(forms.signup, document.getElementById("signupBtn"), errorBox, "/api/v1/auth/register", body);
       });
 
       document.getElementById("guestBtn").addEventListener("click", () => {
         signOut();
         window.location.href = "index.html";
       });
+
+      // ---- Sign in with Google (only shown when the API has a Google client ID) ----
+      async function setUpGoogle() {
+        let clientId = null;
+        try {
+          const res = await fetch("/api/v1/auth/config");
+          if (res.ok) clientId = (await res.json()).google_client_id;
+        } catch { /* Google button stays hidden */ }
+        if (!clientId) return;
+
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.onload = () => {
+          google.accounts.id.initialize({ client_id: clientId, callback: onGoogleCredential });
+          google.accounts.id.renderButton(document.getElementById("googleBtn"), {
+            theme: document.documentElement.getAttribute("data-theme") === "light" ? "outline" : "filled_black",
+            size: "large", text: "continue_with", shape: "rectangular", width: 320,
+          });
+          document.getElementById("googleBox").style.display = "block";
+        };
+        document.head.appendChild(script);
+      }
+
+      async function onGoogleCredential(response) {
+        const errorBox = document.getElementById("googleError");
+        errorBox.textContent = "";
+        try {
+          const res = await fetch("/api/v1/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential }),
+          });
+          if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
+          done(await res.json());
+        } catch (err) {
+          console.error(err);
+          errorBox.textContent = "Could not reach the server. Please try again.";
+        }
+      }
+
+      setUpGoogle();
     });
   </script>
 </body>

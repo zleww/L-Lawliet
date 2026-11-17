@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <main class="settings-wrap">
+    <h1 style="font-family: 'Playfair Display', serif;">Profile &amp; <span class="gold-text">Settings</span></h1>
+    <p id="accountLine" style="color: var(--text-muted); margin-top: 4px;">Loading…</p>
+    <p id="loadError" role="alert" class="form-error"></p>
+
+    <!-- Profile -->
+    <section class="settings-section">
+      <h2>Profile</h2>
+      <p>Your display name is filled in for you when you post a note.</p>
+      <form id="profileForm" class="comment-form" style="margin-top: 0;">
+        <label for="displayName" class="field-label">Display name</label>
+        <input id="displayName" type="text" maxlength="100" autocomplete="name">
+        <label for="bio" class="field-label">Short bio</label>
+        <textarea id="bio" rows="3" maxlength="300" placeholder="e.g. BSCS student, interested in data privacy law"></textarea>
+        <button type="submit" id="profileBtn">Save profile</button>
+        <p id="profileError" role="alert" class="form-error"></p>
+        <p id="profileMsg" role="status" class="form-ok"></p>
+      </form>
+    </section>
+
+    <!-- Appearance -->
+    <section class="settings-section">
+      <h2>Appearance</h2>
+      <p>Saved to your account, so it follows you to any device you log in on.</p>
+      <form id="appearanceForm" class="comment-form" style="margin-top: 0;">
+        <span class="field-label" style="margin-bottom: 6px;">Theme</span>
+        <div class="swatches" role="radiogroup" aria-label="Theme">
+          <label><input type="radio" name="theme" value="dark"> Dark</label>
+          <label><input type="radio" name="theme" value="light"> Light</label>
+        </div>
+        <span class="field-label" style="margin-bottom: 6px;">Accent colour</span>
+        <div class="swatches" role="radiogroup" aria-label="Accent colour">
+          <label><input type="radio" name="accent" value="gold"><span class="swatch-dot" style="background:#C89B53"></span>Gold</label>
+          <label><input type="radio" name="accent" value="blue"><span class="swatch-dot" style="background:#5B9BD5"></span>Blue</label>
+          <label><input type="radio" name="accent" value="green"><span class="swatch-dot" style="background:#4CAF7A"></span>Green</label>
+          <label><input type="radio" name="accent" value="rose"><span class="swatch-dot" style="background:#D9738C"></span>Rose</label>
+        </div>
+        <button type="submit" id="appearanceBtn">Save appearance</button>
+        <p id="appearanceError" role="alert" class="form-error"></p>
+        <p id="appearanceMsg" role="status" class="form-ok"></p>
+      </form>
+    </section>
+
+    <!-- Password (hidden for Google-only accounts) -->
+    <section class="settings-section hidden" id="passwordSection">
+      <h2>Change password</h2>
+      <p>Changing it logs you out on every other device.</p>
+      <form id="passwordForm" class="comment-form" style="margin-top: 0;">
+        <input type="text" id="pwUsername" autocomplete="username" hidden>
+        <label for="currentPassword" class="field-label">Current password</label>
+        <input id="currentPassword" type="password" autocomplete="current-password" required maxlength="200">
+        <label for="newPassword" class="field-label">New password</label>
+        <input id="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+        <p class="field-hint">At least 8 characters, with a letter and a number.</p>
+        <label for="newPassword2" class="field-label">Confirm new password</label>
+        <input id="newPassword2" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+        <button type="submit" id="passwordBtn">Change password</button>
+        <p id="passwordError" role="alert" class="form-error"></p>
+        <p id="passwordMsg" role="status" class="form-ok"></p>
+      </form>
+    </section>
+
+    <!-- Sessions -->
+    <section class="settings-section">
+      <h2>Log out</h2>
+      <p>"Log out everywhere" signs you out on every phone, laptop and browser, including this one.</p>
+      <div class="comment-form" style="margin-top: 0; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" id="logoutBtn">Log out</button>
+        <button type="button" id="logoutAllBtn" class="btn-outline">Log out everywhere</button>
+        <p id="logoutError" role="alert" class="form-error" style="width: 100%;"></p>
+      </div>
+    </section>
+
+    <!-- Delete account -->
+    <section class="settings-section">
+      <h2 style="color: #e57373;">Delete account</h2>
+      <p>This cannot be undone. Your notes stay on the laws but show as "Deleted user".</p>
+      <form id="deleteForm" class="comment-form danger-zone" style="margin-top: 0;">
+        <label for="deleteConfirm" class="field-label">Type your username (<strong id="deleteUsername"></strong>) to confirm</label>
+        <input id="deleteConfirm" type="text" autocomplete="off" required maxlength="50">
+        <div id="deletePasswordBox">
+          <label for="deletePassword" class="field-label">Password</label>
+          <input id="deletePassword" type="password" autocomplete="current-password" maxlength="200">
+        </div>
+        <button type="submit" id="deleteBtn" class="btn-danger-solid">Delete my account</button>
+        <p id="deleteError" role="alert" class="form-error"></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { getAuth, saveSession, updateUser, signOut, apiFetch, errorMessage, applyTheme } = window.LawlietAuth;
+      const $ = (id) => document.getElementById(id);
+
+      if (!getAuth()) { window.location.href = "login.html"; return; }
+
+      let profile;
+      try {
+        const res = await apiFetch("/api/v1/me");
+        if (!res.ok) { $("loadError").textContent = await errorMessage(res); return; }
+        profile = await res.json();
+      } catch (err) {
+        console.error(err);
+        $("loadError").textContent = "Could not load your settings. Please try again.";
+        return;
+      }
+
+      // ---- Fill the forms ----
+      const since = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "";
+      $("accountLine").textContent =
+        `@${profile.username}` + (profile.email ? ` · ${profile.email}` : "") +
+        (profile.google_linked ? " · signed in with Google" : "") +
+        (profile.role === "admin" ? " · admin" : "") + (since ? ` · member since ${since}` : "");
+      $("displayName").value = profile.display_name || "";
+      $("bio").value = profile.bio || "";
+      document.querySelector(`input[name=theme][value=${profile.theme}]`).checked = true;
+      document.querySelector(`input[name=accent][value=${profile.accent}]`).checked = true;
+      $("deleteUsername").textContent = profile.username;
+      $("pwUsername").value = profile.username;
+      if (profile.has_password) $("passwordSection").classList.remove("hidden");
+      else $("deletePasswordBox").classList.add("hidden");
+
+      async function send(btn, url, options, errorBox) {
+        errorBox.textContent = "";
+        btn.disabled = true;
+        try {
+          const res = await apiFetch(url, options);
+          if (!res.ok) { errorBox.textContent = await errorMessage(res); return null; }
+          return res.status === 204 ? {} : await res.json();
+        } catch (err) {
+          console.error(err);
+          errorBox.textContent = "Could not reach the server. Please try again.";
+          return null;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // ---- Profile ----
+      $("profileForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const msg = $("profileMsg");
+        msg.textContent = "";
+        const name = $("displayName").value.trim();
+        const body = { bio: $("bio").value.trim() };
+        if (name) body.display_name = name;
+        const saved = await send($("profileBtn"), "/api/v1/me", { method: "PATCH", body: JSON.stringify(body) }, $("profileError"));
+        if (saved) { updateUser(saved); msg.textContent = "Profile saved."; }
+      });
+
+      // ---- Appearance: preview while choosing, save to the account ----
+      function chosen(name) { return document.querySelector(`input[name=${name}]:checked`).value; }
+      function preview() {
+        const root = document.documentElement;
+        chosen("theme") === "light" ? root.setAttribute("data-theme", "light") : root.removeAttribute("data-theme");
+        chosen("accent") !== "gold" ? root.setAttribute("data-accent", chosen("accent")) : root.removeAttribute("data-accent");
+      }
+      document.querySelectorAll("input[name=theme], input[name=accent]").forEach(el => el.addEventListener("change", preview));
+      $("appearanceForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const msg = $("appearanceMsg");
+        msg.textContent = "";
+        const saved = await send($("appearanceBtn"), "/api/v1/me", {
+          method: "PATCH", body: JSON.stringify({ theme: chosen("theme"), accent: chosen("accent") }),
+        }, $("appearanceError"));
+        if (saved) { updateUser(saved); applyTheme(); msg.textContent = "Appearance saved."; }
+      });
+
+      // ---- Password ----
+      $("passwordForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        $("passwordMsg").textContent = "";
+        if ($("newPassword").value !== $("newPassword2").value) {
+          $("passwordError").textContent = "The two new passwords do not match.";
+          return;
+        }
+        const data = await send($("passwordBtn"), "/api/v1/me/password", {
+          method: "POST",
+          body: JSON.stringify({ current_password: $("currentPassword").value, new_password: $("newPassword").value }),
+        }, $("passwordError"));
+        if (data) {
+          saveSession(data); // the old token no longer works; keep this device logged in
+          $("passwordForm").reset();
+          $("passwordMsg").textContent = "Password changed. Other devices have been logged out.";
+        }
+      });
+
+      // ---- Log out ----
+      $("logoutBtn").addEventListener("click", () => {
+        signOut();
+        window.location.href = "login.html?signedout=1";
+      });
+      $("logoutAllBtn").addEventListener("click", async () => {
+        if (!confirm("Log out on every device, including this one?")) return;
+        const ok = await send($("logoutAllBtn"), "/api/v1/auth/logout-all", { method: "POST" }, $("logoutError"));
+        if (ok) { signOut(); window.location.href = "login.html?signedout=1"; }
+      });
+
+      // ---- Delete account ----
+      $("deleteForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if (!confirm("Delete your account permanently? This cannot be undone.")) return;
+        const body = { confirm: $("deleteConfirm").value.trim() };
+        if (profile.has_password) body.password = $("deletePassword").value;
+        const ok = await send($("deleteBtn"), "/api/v1/me", { method: "DELETE", body: JSON.stringify(body) }, $("deleteError"));
+        if (ok) { signOut(); alert("Your account has been deleted."); window.location.href = "index.html"; }
+      });
+    });
+  </script>
+</body>
+</html>

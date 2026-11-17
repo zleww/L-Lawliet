@@ -24,7 +24,15 @@ L-Lawliet is the **Main Kitchen** (Central Backend API) for our 3 websites. It h
 | Method | Path | Access |
 |---|---|---|
 | GET | `/api/health` | Public (checks the database too) |
-| POST | `/api/v1/auth/login` | Public |
+| POST | `/api/v1/auth/login` | Public (5 wrong passwords lock the account for 15 min) |
+| POST | `/api/v1/auth/register` | Public (creates a `user` account) |
+| POST | `/api/v1/auth/google` | Public (Sign in with Google; needs `GOOGLE_CLIENT_ID`) |
+| GET | `/api/v1/auth/config` | Public (Google client ID for the login page) |
+| GET / PATCH | `/api/v1/me` | User or Admin (own profile: display name, bio, theme, accent) |
+| POST | `/api/v1/me/password` | User or Admin (signs out other devices) |
+| DELETE | `/api/v1/me` | User or Admin (own account; notes stay as "Deleted user") |
+| POST | `/api/v1/auth/logout-all` | User or Admin (every token for the account stops working) |
+| PATCH | `/api/v1/comments/{id}` | The note's author only |
 | GET | `/api/v1/stats` | Public (counts only) |
 | GET | `/api/v1/laws?category=&search=` | Guest: first 10 · User/Admin: all |
 | GET | `/api/v1/laws/search?q=` | Guest: first 10 · User/Admin: all |
@@ -44,8 +52,9 @@ The legacy `/api/laws...` read paths still work for JurisCard and JustGiveupATP 
 2. **Secrets:** copy `.env.example` to `.env` and fill in real values. `.env` is git-ignored.
 3. **Install:** `pip install -r requirements.txt`
 4. **Seed (once):** `python scripts/seed.py` loads the 30 laws, the existing note and the two test accounts.
-5. **Run locally:** `python scripts/dev.py`, then open http://127.0.0.1:8000 (site) and http://127.0.0.1:8000/api/docs (API).
-6. **Vercel:** add `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES` and `ALLOWED_ORIGINS` under Project Settings → Environment Variables (Production and Preview). The function region is set to Singapore (`sin1`) in `vercel.json`.
+5. **Accounts and security rules:** run `scripts/migrate_002_accounts.sql` (owner role), deploy the code, then run `scripts/migrate_003_security_rules.sql` (Row-Level Security). In that order: the old code cannot write once 003 is on.
+6. **Run locally:** `python scripts/dev.py`, then open http://127.0.0.1:8000 (site) and http://127.0.0.1:8000/api/docs (API).
+7. **Vercel:** add `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `ALLOWED_ORIGINS` and (for Google sign-in) `GOOGLE_CLIENT_ID` under Project Settings → Environment Variables (Production and Preview). The function region is set to Singapore (`sin1`) in `vercel.json`.
 
 ##  How to Update Laws
 

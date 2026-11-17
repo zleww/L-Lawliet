@@ -46,8 +46,8 @@
     modalBody.innerHTML = `
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
         <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${e(law.category)} (${e(law.year)})</span>
-        <span style="background: rgba(255, 255, 255, 0.08); color: var(--text-main); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">Status: <strong>${e(law.status)}</strong></span>
-        <span style="background: rgba(255, 255, 255, 0.08); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">⏱️ ${e(law.reading_time_minutes)} min read</span>
+        <span style="background: var(--chip-bg); color: var(--text-main); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">Status: <strong>${e(law.status)}</strong></span>
+        <span style="background: var(--chip-bg); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">⏱️ ${e(law.reading_time_minutes)} min read</span>
         <span style="background: rgba(200, 155, 83, 0.1); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">⭐ Impact: ${e(law.importance_rating)}/5</span>
       </div>
 
@@ -56,7 +56,7 @@
         "${e(law.official_title)}" &bull; <span style="font-style: normal; font-size: 0.85rem;">System ID #${e(law.id)}</span>
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: rgba(6, 13, 20, 0.6); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: var(--bg-inset); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
         ${meta("Enacting President", law.enacting_president)}
         ${meta("Total Sections", `${law.total_sections} Sections`)}
         ${meta("Base Minimum Fine", fine, "var(--accent-gold)")}
@@ -80,8 +80,12 @@
       <div id="commentsList">
         ${notes.length
           ? notes.map(n => `
-              <div class="comment-bubble" style="margin-bottom: 10px;">
-                <span><strong>${e(n.user_name)}:</strong> ${e(n.comment)}</span>
+              <div class="comment-bubble" style="margin-bottom: 10px;" data-note-id="${e(n.id)}">
+                <span><strong>${e(n.user_name)}:</strong> <span class="note-text">${e(n.comment)}</span></span>
+                ${n.edited_at ? '<span class="note-edited">(edited)</span>' : ""}
+                ${auth && auth.id != null && n.user_id === auth.id
+                  ? '<span class="note-actions"><button type="button" class="note-edit-btn">Edit</button></span>'
+                  : ""}
               </div>`).join("")
           : '<p style="color: var(--text-muted); font-size: 0.9rem;">No notes yet. Be the first to add a practical tip!</p>'}
       </div>
@@ -89,7 +93,7 @@
       ${auth
         ? `<div class="comment-form">
              <h4 style="color: var(--text-main); font-size: 1rem; margin-bottom: 10px;">Add a Note or Tip</h4>
-             <input type="text" id="userNameInput" maxlength="100" value="${e(auth.username)}" placeholder="Display name">
+             <input type="text" id="userNameInput" maxlength="100" value="${e(auth.display_name || auth.username)}" placeholder="Display name">
              <textarea id="userCommentInput" maxlength="1000" placeholder="Share a practical tip or explanation..." rows="3"></textarea>
              <button id="submitCommentBtn">Post Note</button>
              <p id="commentError" style="color: #e57373; font-size: 0.85rem; margin-top: 8px;"></p>
@@ -98,6 +102,45 @@
     `;
 
     modal.classList.remove("hidden");
+
+    // Edit one of your own notes in place. The server checks again that it is yours.
+    modalBody.querySelectorAll(".note-edit-btn").forEach(btn => btn.addEventListener("click", () => {
+      const bubble = btn.closest(".comment-bubble");
+      const noteId = Number(bubble.dataset.noteId);
+      const note = notes.find(n => n.id === noteId);
+      bubble.innerHTML = `
+        <div class="note-edit">
+          <label for="editNote${noteId}" style="font-size: 0.8rem; color: var(--text-muted);">Edit your note</label>
+          <textarea id="editNote${noteId}" rows="3" maxlength="1000"></textarea>
+          <button type="button" class="note-save">Save</button>
+          <button type="button" class="note-cancel btn-outline">Cancel</button>
+          <p class="form-error note-error"></p>
+        </div>`;
+      const box = bubble.querySelector("textarea");
+      box.value = note ? note.comment : "";
+      box.focus();
+      bubble.querySelector(".note-cancel").addEventListener("click", () => openModal(law, modal, modalBody));
+      bubble.querySelector(".note-save").addEventListener("click", async (ev) => {
+        const errorBox = bubble.querySelector(".note-error");
+        const text = box.value.trim();
+        if (!text) { errorBox.textContent = "A note cannot be empty."; return; }
+        ev.target.disabled = true;
+        try {
+          const res = await apiFetch(`/api/v1/comments/${encodeURIComponent(noteId)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ comment: text }),
+          });
+          if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
+          law.user_notes = (await res.json()).comments;
+          openModal(law, modal, modalBody);
+        } catch (err) {
+          console.error("Failed to edit note:", err);
+          errorBox.textContent = "Sorry, your change couldn't be saved. Please try again.";
+        } finally {
+          ev.target.disabled = false;
+        }
+      });
+    }));
 
     const submitBtn = document.getElementById("submitCommentBtn");
     if (!submitBtn) return;

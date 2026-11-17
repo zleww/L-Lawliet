@@ -7,8 +7,41 @@
   function getAuth() {
     try { return JSON.parse(sessionStorage.getItem(KEY)) || null; } catch { return null; }
   }
-  function setAuth(auth) { sessionStorage.setItem(KEY, JSON.stringify(auth)); }
-  function signOut() { sessionStorage.removeItem(KEY); }
+  function setAuth(auth) { sessionStorage.setItem(KEY, JSON.stringify(auth)); applyTheme(); }
+  function signOut() { sessionStorage.removeItem(KEY); applyTheme(); }
+
+  // Save a login result ({token, user: {...}}) from login, sign-up, Google or a password change.
+  function saveSession(data) {
+    const u = data.user || {};
+    setAuth({
+      token: data.token,
+      id: u.id,
+      username: u.username || data.username,
+      role: u.role || data.role,
+      display_name: u.display_name || null,
+      theme: u.theme || "dark",
+      accent: u.accent || "gold",
+      has_password: u.has_password !== false,
+    });
+  }
+
+  // Keep the stored copy of the profile in step after the user changes their settings.
+  function updateUser(profile) {
+    const auth = getAuth();
+    if (!auth) return;
+    setAuth({ ...auth, display_name: profile.display_name, theme: profile.theme, accent: profile.accent });
+  }
+
+  // Theme and accent colour from the user's settings; guests get the default dark + gold.
+  function applyTheme() {
+    const auth = getAuth();
+    const root = document.documentElement;
+    const theme = auth && auth.theme === "light" ? "light" : null;
+    const accent = auth && ["blue", "green", "rose"].includes(auth.accent) ? auth.accent : null;
+    theme ? root.setAttribute("data-theme", theme) : root.removeAttribute("data-theme");
+    accent ? root.setAttribute("data-accent", accent) : root.removeAttribute("data-accent");
+  }
+  applyTheme();
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -39,13 +72,18 @@
       const body = await res.json();
       if (typeof body.detail === "string") return body.detail;
       if (Array.isArray(body.detail)) {
-        return body.detail.map(e => `${(e.loc || []).slice(1).join(".") || "body"}: ${e.msg}`).join("; ");
+        // Pydantic prefixes custom rule messages with "Value error, "; the rule text alone reads better.
+        return body.detail.map(e => {
+          const msg = String(e.msg || "").replace(/^Value error, /, "");
+          const field = (e.loc || []).slice(1).join(".");
+          return field && e.type !== "value_error" ? `${field}: ${msg}` : msg;
+        }).join("; ");
       }
     } catch { /* fall through */ }
     return `Request failed (HTTP ${res.status})`;
   }
 
-  // Turn the "Sign In" button on every page into Sign In / username + Sign Out.
+  // Turn the "Sign In" button on every page into Sign In / name (links to Settings) + Sign Out.
   function renderNav() {
     const btn = document.querySelector(".btn-signin");
     if (!btn) return;
@@ -58,7 +96,7 @@
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;align-items:center;gap:12px;";
     wrap.innerHTML = `
-      <span style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(auth.username)}</span>
+      <a href="settings.html" title="Profile and settings" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none;">${escapeHtml(auth.display_name || auth.username)} &#9881;</a>
       ${auth.role === "admin" ? '<a href="admin.html" style="color: var(--accent-gold); font-size: 0.9rem;">Admin</a>' : ""}
     `;
     const out = btn.cloneNode(false);
@@ -68,6 +106,8 @@
     btn.replaceWith(wrap);
   }
 
-  window.LawlietAuth = { getAuth, setAuth, signOut, apiFetch, escapeHtml, errorMessage };
+  window.LawlietAuth = {
+    getAuth, setAuth, saveSession, updateUser, signOut, applyTheme, apiFetch, escapeHtml, errorMessage,
+  };
   document.addEventListener("DOMContentLoaded", renderNav);
 })();
