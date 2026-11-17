@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Suggest a Law - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <main class="settings-wrap">
+    <h1 style="font-family: 'Playfair Display', serif;">Suggest a <span class="gold-text">law</span></h1>
+    <p style="color: var(--text-muted); margin-top: 4px;">Can't find a Republic Act? Tell the admins which one. If they approve it, they write the plain-English explanation and add it to L-Lawliet.</p>
+
+    <form id="suggestForm" class="comment-form">
+      <label for="ra" class="field-label">RA number</label>
+      <input id="ra" type="text" required maxlength="30" placeholder="e.g. RA 11036">
+      <label for="title" class="field-label">Name of the law</label>
+      <input id="title" type="text" required minlength="3" maxlength="200" placeholder="e.g. Mental Health Act">
+      <label for="reason" class="field-label">Why should it be added?</label>
+      <textarea id="reason" rows="4" required minlength="10" maxlength="1000" placeholder="Who it affects and why people should know it"></textarea>
+      <label for="source" class="field-label">Official source link (optional)</label>
+      <input id="source" type="url" maxlength="500" placeholder="https://www.officialgazette.gov.ph/...">
+      <button type="submit" id="sendBtn">Send suggestion</button>
+      <p id="formError" role="alert" class="form-error"></p>
+      <p id="formOk" role="status" class="form-ok"></p>
+    </form>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const { getAuth, apiFetch, errorMessage } = window.LawlietAuth;
+      const $ = (id) => document.getElementById(id);
+      if (!getAuth()) { window.location.href = "login.html"; return; }
+
+      $("suggestForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        $("formError").textContent = "";
+        $("formOk").textContent = "";
+        const body = { ra_number: $("ra").value.trim(), title: $("title").value.trim(), reason: $("reason").value.trim() };
+        const source = $("source").value.trim();
+        if (source) body.source_url = source;
+        $("sendBtn").disabled = true;
+        try {
+          const res = await apiFetch("/api/v1/suggestions", { method: "POST", body: JSON.stringify(body) });
+          if (!res.ok) { $("formError").textContent = await errorMessage(res); return; }
+          const saved = await res.json();
+          $("suggestForm").reset();
+          $("formOk").innerHTML = `Sent! ${saved.ra_number} is waiting for an admin. Track it on <a href="profile.html" style="color: var(--accent-gold);">your profile</a>.`;
+        } catch (err) {
+          console.error(err);
+          $("formError").textContent = "Could not reach the server. Please try again.";
+        } finally {
+          $("sendBtn").disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -17,6 +17,15 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
     .form-grid label { display: block; font-size: 0.8rem; color: var(--text-muted); }
     .form-grid .wide { grid-column: 1 / -1; }
+    .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); margin: 12px 0 16px; }
+    .admin-tabs button { background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+    .admin-tabs button[aria-selected="true"] { color: var(--accent-gold); border-bottom-color: var(--accent-gold); }
+    .tab-count { background: var(--accent-gold); color: #000; border-radius: 10px; font-size: 0.72rem; padding: 0 7px; margin-left: 4px; }
+    .tab-count:empty { display: none; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+    .panel-head h2 { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+    .panel-head select { padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-main); }
+    .cell-text { max-width: 320px; }
     .comment-form select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-card); color: var(--text-main); }
   </style>
 </head>
@@ -35,11 +44,20 @@
   </nav>
 
   <main class="admin-wrap">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-      <h1 style="font-family: 'Playfair Display', serif;">Manage <span class="gold-text">Laws</span></h1>
-      <button id="addBtn" class="btn-gold">+ Add law</button>
+    <h1 style="font-family: 'Playfair Display', serif;">Admin <span class="gold-text">dashboard</span></h1>
+    <div class="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="laws" aria-selected="true">Laws</button>
+      <button type="button" role="tab" data-tab="suggestions" aria-selected="false">Suggestions<span class="tab-count" id="countSuggestions"></span></button>
+      <button type="button" role="tab" data-tab="reports" aria-selected="false">Reports<span class="tab-count" id="countReports"></span></button>
+      <button type="button" role="tab" data-tab="users" aria-selected="false">Users</button>
     </div>
     <p id="pageMsg" role="status" style="margin-bottom: 12px; color: var(--accent-gold);"></p>
+
+    <section id="panel-laws" class="admin-panel">
+    <div class="panel-head">
+      <h2>Laws</h2>
+      <button id="addBtn" class="btn-gold">+ Add law</button>
+    </div>
 
     <form id="lawForm" class="comment-form hidden" style="margin-bottom: 24px;">
       <h3 id="formTitle" style="margin-bottom: 12px;">Add law</h3>
@@ -57,6 +75,44 @@
         <tbody id="lawRows"><tr><td colspan="8">Loading…</td></tr></tbody>
       </table>
     </div>
+    </section>
+
+    <section id="panel-suggestions" class="admin-panel hidden">
+      <div class="panel-head">
+        <h2>Law suggestions</h2>
+        <select id="sugStatus" aria-label="Show suggestions"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+      </div>
+      <div class="table-scroll">
+        <table class="admin-table">
+          <thead><tr><th>RA number</th><th>Title</th><th>Why</th><th>Source</th><th>By</th><th>Sent</th><th></th></tr></thead>
+          <tbody id="sugRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panel-reports" class="admin-panel hidden">
+      <div class="panel-head">
+        <h2>Reported notes</h2>
+        <select id="repStatus" aria-label="Show reports"><option value="open">Open</option><option value="dismissed">Dismissed</option></select>
+      </div>
+      <div class="table-scroll">
+        <table class="admin-table">
+          <thead><tr><th>Note</th><th>Law</th><th>Author</th><th>Reason</th><th>Reported by</th><th>Reports</th><th></th></tr></thead>
+          <tbody id="repRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="panel-users" class="admin-panel hidden">
+      <div class="panel-head"><h2>Accounts</h2></div>
+      <p class="muted-small" style="margin-bottom: 10px;">Admins are created only in the database. Here you can unlock accounts, log someone out everywhere, or delete a non-admin account (their notes stay as "Deleted user").</p>
+      <div class="table-scroll">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>Username</th><th>Name</th><th>Role</th><th>Joined</th><th>Notes</th><th>Status</th><th></th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script src="auth.js"></script>
@@ -96,6 +152,7 @@
       const pageMsg = document.getElementById("pageMsg");
       let laws = [];
       let editing = null; // the law being edited, or null when adding
+      let pendingSuggestion = null; // the suggestion being turned into a law, if any
 
       fieldsBox.innerHTML = FIELDS.map(([name, label, type, opt, cls]) => {
         let input;
@@ -143,7 +200,7 @@
       }
 
       document.getElementById("addBtn").addEventListener("click", () => openForm(null));
-      document.getElementById("cancelBtn").addEventListener("click", () => form.classList.add("hidden"));
+      document.getElementById("cancelBtn").addEventListener("click", () => { pendingSuggestion = null; form.classList.add("hidden"); });
 
       document.getElementById("lawRows").addEventListener("click", async (ev) => {
         const editId = ev.target.dataset.edit;
@@ -176,11 +233,155 @@
         if (!res.ok) { formError.textContent = await errorMessage(res); return; }
         const saved = await res.json();
         pageMsg.textContent = editing ? `Updated ${saved.ra_number}.` : `Created ${saved.ra_number} with ID ${saved.id}.`;
+        if (!editing && pendingSuggestion) {
+          const review = await apiFetch(`/api/v1/admin/suggestions/${encodeURIComponent(pendingSuggestion.id)}`, {
+            method: "PATCH", body: JSON.stringify({ status: "approved", law_id: saved.id }),
+          });
+          pageMsg.textContent += review.ok ? " The suggestion is now approved." : ` The suggestion was not updated: ${await errorMessage(review)}`;
+          pendingSuggestion = null;
+          loadSuggestions();
+        }
         form.classList.add("hidden");
         load();
       });
 
+      // ---------- Tabs ----------
+      const tabs = document.querySelectorAll(".admin-tabs [data-tab]");
+      function showTab(name) {
+        tabs.forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+        document.querySelectorAll(".admin-panel").forEach(p => p.classList.toggle("hidden", p.id !== `panel-${name}`));
+        pageMsg.textContent = "";
+        if (name === "suggestions") loadSuggestions();
+        if (name === "reports") loadReports();
+        if (name === "users") loadUsers();
+      }
+      tabs.forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
+      const when = v => (v ? new Date(v).toLocaleDateString() : "");
+
+      // ---------- Suggestions ----------
+      let suggestions = [];
+      async function loadSuggestions() {
+        const status = document.getElementById("sugStatus").value;
+        const res = await apiFetch(`/api/v1/admin/suggestions?status=${status}`);
+        if (!res.ok) { pageMsg.textContent = await errorMessage(res); return; }
+        suggestions = (await res.json()).suggestions;
+        if (status === "pending") document.getElementById("countSuggestions").textContent = suggestions.length || "";
+        document.getElementById("sugRows").innerHTML = suggestions.map(sg => `
+          <tr>
+            <td>${e(sg.ra_number)}</td><td>${e(sg.title)}</td><td class="cell-text">${e(sg.reason)}</td>
+            <td>${sg.source_url ? `<a href="${e(sg.source_url)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold);">link</a>` : ""}</td>
+            <td>${e(sg.suggested_by || "Deleted user")}</td><td>${e(when(sg.created_at))}</td>
+            <td style="white-space: nowrap;">${sg.status === "pending"
+              ? `<button class="btn-small" data-approve="${e(sg.id)}">Add law &amp; approve</button>
+                 <button class="btn-small btn-danger" data-reject="${e(sg.id)}">Reject</button>`
+              : `${e(sg.status)}${sg.admin_note ? `: ${e(sg.admin_note)}` : ""}`}</td>
+          </tr>`).join("") || `<tr><td colspan="7">No ${e(status)} suggestions.</td></tr>`;
+      }
+      document.getElementById("sugStatus").addEventListener("change", loadSuggestions);
+      document.getElementById("sugRows").addEventListener("click", async (ev) => {
+        const sg = suggestions.find(x => String(x.id) === (ev.target.dataset.approve || ev.target.dataset.reject));
+        if (!sg) return;
+        if (ev.target.dataset.approve) {
+          showTab("laws");
+          openForm(null);
+          pendingSuggestion = sg;
+          document.getElementById("formTitle").textContent = `Add ${sg.ra_number} (suggested by ${sg.suggested_by || "a user"})`;
+          form.elements.ra_number.value = sg.ra_number;
+          form.elements.plain_title.value = sg.title;
+          if (sg.source_url) form.elements.source_url.value = sg.source_url;
+          return;
+        }
+        const note = prompt(`Reject ${sg.ra_number}? Optional note for the user:`, "");
+        if (note === null) return;
+        const res = await apiFetch(`/api/v1/admin/suggestions/${encodeURIComponent(sg.id)}`, {
+          method: "PATCH", body: JSON.stringify({ status: "rejected", ...(note.trim() ? { admin_note: note.trim() } : {}) }),
+        });
+        pageMsg.textContent = res.ok ? `Rejected ${sg.ra_number}.` : await errorMessage(res);
+        loadSuggestions();
+      });
+
+      // ---------- Reports ----------
+      let reports = [];
+      async function loadReports() {
+        const status = document.getElementById("repStatus").value;
+        const res = await apiFetch(`/api/v1/admin/reports?status=${status}`);
+        if (!res.ok) { pageMsg.textContent = await errorMessage(res); return; }
+        reports = (await res.json()).reports;
+        if (status === "open") document.getElementById("countReports").textContent = reports.length || "";
+        const reasons = { spam: "Spam", offensive: "Offensive", wrong_info: "Wrong information", other: "Other" };
+        document.getElementById("repRows").innerHTML = reports.map(r => `
+          <tr>
+            <td class="cell-text">${e(r.comment)}</td>
+            <td><a href="browse.html?law=${encodeURIComponent(r.law_id)}" style="color: var(--accent-gold);">${e(r.ra_number)}</a></td>
+            <td>${r.author_id ? `<a href="profile.html?id=${encodeURIComponent(r.author_id)}" style="color: var(--accent-gold);">${e(r.author_name)}</a>` : e(r.author_name)}</td>
+            <td>${e(reasons[r.reason] || r.reason)}${r.details ? `<br><span class="muted-small">${e(r.details)}</span>` : ""}</td>
+            <td>${e(r.reporter || "Deleted user")}<br><span class="muted-small">${e(when(r.created_at))}</span></td>
+            <td>${e(r.open_reports_on_note)}</td>
+            <td style="white-space: nowrap;">${r.status === "open"
+              ? `<button class="btn-small" data-dismiss="${e(r.id)}">Dismiss</button>
+                 <button class="btn-small btn-danger" data-remove="${e(r.comment_id)}">Delete note</button>`
+              : `dismissed ${e(when(r.resolved_at))}`}</td>
+          </tr>`).join("") || `<tr><td colspan="7">No ${e(status)} reports.</td></tr>`;
+      }
+      document.getElementById("repStatus").addEventListener("change", loadReports);
+      document.getElementById("repRows").addEventListener("click", async (ev) => {
+        const { dismiss, remove } = ev.target.dataset;
+        if (dismiss) {
+          const res = await apiFetch(`/api/v1/admin/reports/${encodeURIComponent(dismiss)}`, {
+            method: "PATCH", body: JSON.stringify({ status: "dismissed" }),
+          });
+          pageMsg.textContent = res.ok ? "Report dismissed; the note stays." : await errorMessage(res);
+        }
+        if (remove) {
+          if (!confirm("Delete this note for everyone? Its reports are closed with it.")) return;
+          const res = await apiFetch(`/api/v1/comments/${encodeURIComponent(remove)}`, { method: "DELETE" });
+          pageMsg.textContent = res.status === 204 ? "Note deleted." : await errorMessage(res);
+        }
+        loadReports();
+      });
+
+      // ---------- Users ----------
+      let users = [];
+      async function loadUsers() {
+        const res = await apiFetch("/api/v1/admin/users");
+        if (!res.ok) { pageMsg.textContent = await errorMessage(res); return; }
+        users = (await res.json()).users;
+        document.getElementById("userRows").innerHTML = users.map(u => `
+          <tr>
+            <td>${e(u.id)}</td>
+            <td><a href="profile.html?id=${encodeURIComponent(u.id)}" style="color: var(--accent-gold);">${e(u.username)}</a>${u.google_linked ? ' <span class="muted-small">(Google)</span>' : ""}</td>
+            <td>${e(u.display_name || "")}</td><td>${e(u.role)}</td><td>${e(when(u.created_at))}</td><td>${e(u.note_count)}</td>
+            <td>${u.is_locked ? '<span style="color: #e57373;">Locked</span>' : "Active"}</td>
+            <td style="white-space: nowrap;">
+              ${u.is_locked ? `<button class="btn-small" data-unlock="${e(u.id)}">Unlock</button>` : ""}
+              <button class="btn-small" data-logout="${e(u.id)}">Log out everywhere</button>
+              ${u.role === "admin" ? "" : `<button class="btn-small btn-danger" data-deluser="${e(u.id)}">Delete</button>`}
+            </td>
+          </tr>`).join("") || `<tr><td colspan="8">No accounts.</td></tr>`;
+      }
+      document.getElementById("userRows").addEventListener("click", async (ev) => {
+        const { unlock, logout, deluser } = ev.target.dataset;
+        const u = users.find(x => String(x.id) === (unlock || logout || deluser));
+        if (!u) return;
+        let res;
+        if (unlock) res = await apiFetch(`/api/v1/admin/users/${encodeURIComponent(u.id)}/unlock`, { method: "POST" });
+        if (logout) {
+          if (!confirm(`Log ${u.username} out on every device?`)) return;
+          res = await apiFetch(`/api/v1/admin/users/${encodeURIComponent(u.id)}/logout-all`, { method: "POST" });
+        }
+        if (deluser) {
+          if (!confirm(`Delete ${u.username}? Their notes stay as "Deleted user". This cannot be undone.`)) return;
+          res = await apiFetch(`/api/v1/admin/users/${encodeURIComponent(u.id)}`, { method: "DELETE" });
+        }
+        pageMsg.textContent = res.ok
+          ? (unlock ? `Unlocked ${u.username}.` : logout ? `${u.username} is logged out everywhere.` : `Deleted ${u.username}.`)
+          : await errorMessage(res);
+        loadUsers();
+      });
+
       load();
+      loadSuggestions();
+      loadReports();
     });
   </script>
 </body>

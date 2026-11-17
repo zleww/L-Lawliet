@@ -34,6 +34,19 @@ L-Lawliet is the **Main Kitchen** (Central Backend API) for our 3 websites. It h
 | POST | `/api/v1/auth/logout-all` | User or Admin (every token for the account stops working) |
 | PATCH | `/api/v1/comments/{id}` | The note's author only |
 | DELETE | `/api/v1/comments/{id}` | The note's author, or an admin |
+| GET | `/api/v1/me/saved` | User or Admin (own saved laws) |
+| POST / DELETE | `/api/v1/laws/{id}/save` | User or Admin (save / unsave a law) |
+| PUT / DELETE | `/api/v1/laws/{id}/rating` | User or Admin (one 1-5 rating per law) |
+| POST / DELETE | `/api/v1/comments/{id}/vote` | User or Admin (mark someone else's note helpful) |
+| POST | `/api/v1/comments/{id}/report` | User or Admin (report someone else's note) |
+| POST | `/api/v1/suggestions` | User or Admin (suggest a missing law) |
+| GET | `/api/v1/me/suggestions` | User or Admin (own suggestions and their status) |
+| GET | `/api/v1/users/{id}` | User or Admin (public profile: name, bio, notes) |
+| GET / PATCH | `/api/v1/admin/reports[/{id}]` | Admin (report queue; dismiss) |
+| GET / PATCH | `/api/v1/admin/suggestions[/{id}]` | Admin (review: approve with the new law's id, or reject) |
+| GET | `/api/v1/admin/users` | Admin (account list) |
+| POST | `/api/v1/admin/users/{id}/unlock`, `/logout-all` | Admin |
+| DELETE | `/api/v1/admin/users/{id}` | Admin (non-admin accounts only) |
 | GET | `/api/v1/stats` | Public (counts only) |
 | GET | `/api/v1/laws?category=&search=` | Guest: first 10 · User/Admin: all |
 | GET | `/api/v1/laws/search?q=` | Guest: first 10 · User/Admin: all |
@@ -53,7 +66,7 @@ The legacy `/api/laws...` read paths still work for JurisCard and JustGiveupATP 
 2. **Secrets:** copy `.env.example` to `.env` and fill in real values. `.env` is git-ignored.
 3. **Install:** `pip install -r requirements.txt`
 4. **Seed (once):** `python scripts/seed.py` loads the 30 laws, the existing note and the two test accounts.
-5. **Accounts and security rules:** run `scripts/migrate_002_accounts.sql` (owner role), deploy the code, then run `scripts/migrate_003_security_rules.sql` (Row-Level Security) and `scripts/migrate_004_comment_delete.sql`. In that order: the old code cannot write once 003 is on.
+5. **Accounts and security rules:** run `scripts/migrate_002_accounts.sql` (owner role), deploy the code, then run `scripts/migrate_003_security_rules.sql` (Row-Level Security) and `scripts/migrate_004_comment_delete.sql`. Run `scripts/migrate_005_user_features.sql` BEFORE deploying the code that uses it (saved laws, ratings, votes, reports, suggestions, admin account tools). In that order: the old code cannot write once 003 is on.
 6. **Run locally:** `python scripts/dev.py`, then open http://127.0.0.1:8000 (site) and http://127.0.0.1:8000/api/docs (API).
 7. **Vercel:** add `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `ALLOWED_ORIGINS` and (for Google sign-in) `GOOGLE_CLIENT_ID` under Project Settings → Environment Variables (Production and Preview). The function region is set to Singapore (`sin1`) in `vercel.json`.
 

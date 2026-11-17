@@ -1,4 +1,5 @@
 """Pydantic request models. Limits match the CHECK constraints in scripts/schema.sql."""
+import re
 from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
@@ -180,3 +181,69 @@ class CommentEdit(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     comment: Text(1, 1000)
+
+
+# ----------------------------------------------------------------------
+# Saved laws, ratings, votes, reports, suggestions
+# ----------------------------------------------------------------------
+_RA_PATTERN = re.compile(r"^(?:R\.?\s*A\.?\s*(?:No\.?\s*)?)?(\d{1,5})$", re.IGNORECASE)
+
+
+def normalize_ra_number(value: str) -> str:
+    """'11036', 'ra 11036', 'R.A. No. 11036' -> 'RA 11036' (the format stored in laws)."""
+    match = _RA_PATTERN.match(value.strip())
+    if not match:
+        raise ValueError("Use an RA number like RA 11036.")
+    return f"RA {int(match.group(1))}"
+
+
+class RatingRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rating: int = Field(ge=1, le=5)
+
+
+ReportReason = Literal["spam", "offensive", "wrong_info", "other"]
+
+
+class ReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: ReportReason
+    details: Optional[Text(0, 500)] = None
+
+
+class ReportReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["dismissed"]
+
+
+class SuggestionCreate(BaseModel):
+    """The short form: the admin completes the full law when approving."""
+    model_config = ConfigDict(extra="forbid")
+
+    ra_number: str = Field(max_length=30)
+    title: Text(3, 200)
+    reason: Text(10, 1000)
+    source_url: Optional[HttpsUrl] = None
+
+    @field_validator("ra_number")
+    @classmethod
+    def ra_format(cls, value: str) -> str:
+        return normalize_ra_number(value)
+
+
+class SuggestionReview(BaseModel):
+    """Approve (pointing at the law that was created for it) or reject, with an optional note."""
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["approved", "rejected"]
+    admin_note: Optional[Text(0, 500)] = None
+    law_id: Optional[int] = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def approval_needs_law(self):
+        if self.status == "approved" and self.law_id is None:
+            raise ValueError("Approving needs law_id: the law created for this suggestion.")
+        return self

@@ -98,7 +98,8 @@
     wrap.className = "nav-auth";
     wrap.style.cssText = "display:flex;align-items:center;gap:12px;";
     wrap.innerHTML = `
-      <a href="settings.html" title="Profile and settings" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none;">${escapeHtml(auth.display_name || auth.username)} &#9881;</a>
+      <a href="profile.html" title="My profile, saved laws and suggestions" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none;">${escapeHtml(auth.display_name || auth.username)}</a>
+      <a href="settings.html" title="Settings" aria-label="Settings" style="color: var(--text-muted); font-size: 1rem; text-decoration: none;">&#9881;</a>
       ${auth.role === "admin" ? '<a href="admin.html" style="color: var(--accent-gold); font-size: 0.9rem;">Admin</a>' : ""}
     `;
     const out = btn.cloneNode(false);

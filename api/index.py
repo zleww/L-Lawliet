@@ -9,7 +9,7 @@ import re
 import secrets
 import sys
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # lets Vercel and uvicorn find the helpers
 
@@ -33,7 +33,8 @@ from _auth import (
 )
 from _models import (
     Category, CommentEdit, CommentSubmission, DeleteAccountRequest, GoogleLoginRequest,
-    LawCreate, LawUpdate, LoginRequest, PasswordChange, ProfileUpdate, RegisterRequest,
+    LawCreate, LawUpdate, LoginRequest, PasswordChange, ProfileUpdate, RatingRequest,
+    RegisterRequest, ReportRequest, ReportReview, SuggestionCreate, SuggestionReview,
 )
 
 API_VERSION = "2.1"
@@ -67,9 +68,14 @@ app.add_middleware(
 @app.exception_handler(psycopg2.Error)
 def database_error(request: Request, exc: psycopg2.Error):
     if isinstance(exc, pg_errors.UniqueViolation):
-        if exc.diag.table_name == "users":
-            return JSONResponse(status_code=409, content={"detail": "That username or account already exists."})
-        return JSONResponse(status_code=409, content={"detail": "A law with this RA number already exists."})
+        duplicate = {
+            "users": "That username or account already exists.",
+            "saved_laws": "You already saved this law.",
+            "comment_votes": "You already marked this note as helpful.",
+            "comment_reports": "You already reported this note.",
+            "law_suggestions": "You already have a pending suggestion for this RA number.",
+        }.get(exc.diag.table_name, "A law with this RA number already exists.")
+        return JSONResponse(status_code=409, content={"detail": duplicate})
     if isinstance(exc, pg_errors.InsufficientPrivilege):
         # A database security rule (RLS policy or column privilege) refused the change.
         log.warning("Database refused a write: %s", exc.pgerror)
@@ -314,7 +320,8 @@ def get_laws(
 @app.get("/api/v1/laws/{law_id}", tags=["Laws"])
 @app.get("/api/laws/{law_id}", include_in_schema=False)
 def get_law(law_id: int, user: Optional[dict] = Depends(optional_user), conn=Depends(db.get_db)):
-    law = db.get_law(conn, law_id)
+    """Logged in: also says whether you saved the law, your rating, and the notes you marked helpful."""
+    law = db.get_law(conn, law_id, user)
     if law is None:
         raise HTTPException(status_code=404, detail="Law not found.")
     if user is None and not db.is_in_preview(conn, law_id):
@@ -388,4 +395,192 @@ def delete_comment(comment_id: int, user: dict = Depends(require_user), conn=Dep
         raise HTTPException(status_code=403, detail="You can only delete your own notes.")
     if not db.delete_comment(conn, comment_id, user):  # the comments_delete_own policy refused it
         raise HTTPException(status_code=403, detail="You can only delete your own notes.")
+    return Response(status_code=204)
+
+
+# ==========================================================
+# SAVED LAWS (each user's private bookmarks)
+# ==========================================================
+@app.get("/api/v1/me/saved", tags=["Saved laws"])
+def my_saved_laws(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    saved = db.list_saved(conn, user)
+    return {"count": len(saved), "saved": saved}
+
+
+@app.post("/api/v1/laws/{law_id}/save", status_code=201, tags=["Saved laws"])
+def save_law(law_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    row = db.save_law(conn, user, law_id)  # 409 if already saved, 404 if the law does not exist
+    return {"law_id": law_id, "saved": True, "saved_at": row["saved_at"]}
+
+
+@app.delete("/api/v1/laws/{law_id}/save", status_code=204, tags=["Saved laws"])
+def unsave_law(law_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    if not db.unsave_law(conn, user, law_id):
+        raise HTTPException(status_code=404, detail="This law is not in your saved laws.")
+    return Response(status_code=204)
+
+
+# ==========================================================
+# RATINGS (one 1-5 rating per user per law)
+# ==========================================================
+@app.put("/api/v1/laws/{law_id}/rating", tags=["Ratings"])
+def rate_law(law_id: int, payload: RatingRequest, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Rating again replaces your earlier rating."""
+    if db.get_law(conn, law_id) is None:
+        raise HTTPException(status_code=404, detail="Law not found.")
+    return {"law_id": law_id, **db.set_rating(conn, user, law_id, payload.rating)}
+
+
+@app.delete("/api/v1/laws/{law_id}/rating", status_code=204, tags=["Ratings"])
+def remove_rating(law_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    if not db.delete_rating(conn, user, law_id):
+        raise HTTPException(status_code=404, detail="You have not rated this law.")
+    return Response(status_code=204)
+
+
+# ==========================================================
+# HELPFUL VOTES AND REPORTS ON NOTES
+# ==========================================================
+def _note_by_someone_else(conn, comment_id: int, user: dict, own_message: str) -> dict:
+    found = db.get_comment(conn, comment_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Note not found.")
+    if found["user_id"] == user["id"]:
+        raise HTTPException(status_code=403, detail=own_message)
+    return found
+
+
+@app.post("/api/v1/comments/{comment_id}/vote", status_code=201, tags=["Comments"])
+def vote_helpful(comment_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    _note_by_someone_else(conn, comment_id, user, "You can't mark your own note as helpful.")
+    count = db.add_vote(conn, user, comment_id)  # 409 if you already voted
+    return {"comment_id": comment_id, "voted": True, "helpful_count": count}
+
+
+@app.delete("/api/v1/comments/{comment_id}/vote", status_code=204, tags=["Comments"])
+def remove_vote(comment_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    if not db.remove_vote(conn, user, comment_id):
+        raise HTTPException(status_code=404, detail="You have not marked this note as helpful.")
+    return Response(status_code=204)
+
+
+@app.post("/api/v1/comments/{comment_id}/report", status_code=201, tags=["Comments"])
+def report_note(comment_id: int, payload: ReportRequest, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Reasons: spam, offensive, wrong_info, other. One report per user per note."""
+    _note_by_someone_else(conn, comment_id, user, "You can't report your own note.")
+    row = db.add_report(conn, user, comment_id, payload.reason, payload.details)  # 409 if already reported
+    return {"message": "Thanks, an admin will review this note.", "report_id": row["id"], "status": row["status"]}
+
+
+# ==========================================================
+# LAW SUGGESTIONS (users suggest, admins review)
+# ==========================================================
+@app.post("/api/v1/suggestions", status_code=201, tags=["Suggestions"])
+def suggest_law(payload: SuggestionCreate, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Short form: RA number, title, why it matters, optional https source. An admin adds the full law."""
+    if db.law_id_by_ra(conn, payload.ra_number):
+        raise HTTPException(status_code=409, detail=f"{payload.ra_number} is already in L-Lawliet.")
+    return db.create_suggestion(conn, user, payload.model_dump())
+
+
+@app.get("/api/v1/me/suggestions", tags=["Suggestions"])
+def my_suggestions(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    rows = db.list_my_suggestions(conn, user)
+    return {"count": len(rows), "suggestions": rows}
+
+
+# ==========================================================
+# PUBLIC PROFILES (logged-in users only)
+# ==========================================================
+@app.get("/api/v1/users/{user_id}", tags=["Profiles"])
+def get_profile(user_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Display name, bio, member since and notes. Never email, settings or saved laws."""
+    profile = db.get_profile(conn, user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return profile
+
+
+# ==========================================================
+# ADMIN: moderation, suggestions and accounts
+# ==========================================================
+@app.get("/api/v1/admin/reports", tags=["Admin"])
+def admin_reports(
+    status: Literal["open", "dismissed"] = "open",
+    admin: dict = Depends(require_admin), conn=Depends(db.get_db),
+):
+    rows = db.list_reports(conn, admin, status)
+    return {"count": len(rows), "reports": rows}
+
+
+@app.patch("/api/v1/admin/reports/{report_id}", tags=["Admin"])
+def admin_resolve_report(
+    report_id: int, payload: ReportReview, admin: dict = Depends(require_admin), conn=Depends(db.get_db),
+):
+    """Dismiss a report. To remove the note instead, DELETE /api/v1/comments/{comment_id}."""
+    row = db.resolve_report(conn, admin, report_id, payload.status)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    return row
+
+
+@app.get("/api/v1/admin/suggestions", tags=["Admin"])
+def admin_suggestions(
+    status: Literal["pending", "approved", "rejected"] = "pending",
+    admin: dict = Depends(require_admin), conn=Depends(db.get_db),
+):
+    rows = db.list_suggestions(conn, admin, status)
+    return {"count": len(rows), "suggestions": rows}
+
+
+@app.patch("/api/v1/admin/suggestions/{suggestion_id}", tags=["Admin"])
+def admin_review_suggestion(
+    suggestion_id: int, payload: SuggestionReview, admin: dict = Depends(require_admin), conn=Depends(db.get_db),
+):
+    """Approve with the law_id of the law you created for it, or reject with an optional note."""
+    current = db.get_suggestion_status(conn, admin, suggestion_id)
+    if current is None:
+        raise HTTPException(status_code=404, detail="Suggestion not found.")
+    if current != "pending":
+        raise HTTPException(status_code=409, detail="This suggestion was already reviewed.")
+    if payload.law_id is not None and db.get_law(conn, payload.law_id) is None:
+        raise HTTPException(status_code=404, detail="Law not found.")
+    row = db.review_suggestion(conn, admin, suggestion_id, payload.status, payload.admin_note, payload.law_id)
+    if row is None:
+        raise HTTPException(status_code=409, detail="This suggestion was already reviewed.")
+    return row
+
+
+@app.get("/api/v1/admin/users", tags=["Admin"])
+def admin_users(admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    rows = db.list_users(conn)
+    return {"count": len(rows), "users": rows}
+
+
+@app.post("/api/v1/admin/users/{user_id}/unlock", tags=["Admin"])
+def admin_unlock_user(user_id: int, admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    """Clear the 15-minute lockout after 5 wrong passwords."""
+    if not db.admin_unlock(conn, admin, user_id):
+        raise HTTPException(status_code=404, detail="User not found.")
+    return {"user_id": user_id, "unlocked": True}
+
+
+@app.post("/api/v1/admin/users/{user_id}/logout-all", status_code=204, tags=["Admin"])
+def admin_logout_user(user_id: int, admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    """Every login token of that account stops working (e.g. a stolen login)."""
+    if not db.bump_token_version(conn, admin, user_id):
+        raise HTTPException(status_code=404, detail="User not found.")
+    return Response(status_code=204)
+
+
+@app.delete("/api/v1/admin/users/{user_id}", status_code=204, tags=["Admin"])
+def admin_delete_user(user_id: int, admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    """Delete a non-admin account. Its notes stay, shown as 'Deleted user'."""
+    role = db.get_user_role(conn, user_id)
+    if role is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if role == "admin":
+        raise HTTPException(status_code=403, detail="Admin accounts can't be deleted here.")
+    if not db.delete_user(conn, admin, user_id):
+        raise HTTPException(status_code=403, detail="You are not allowed to do that.")
     return Response(status_code=204)

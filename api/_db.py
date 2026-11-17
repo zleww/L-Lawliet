@@ -30,17 +30,21 @@ SEARCH_COLUMNS = (
     "penalties",
 )
 
-# Each law row comes back with its comments as a JSON list, so one query serves the page.
+# Each law row comes back with its notes as a JSON list (most helpful first) and its
+# average rating, so one query serves the page.
 LAW_SELECT = """
     SELECT l.*,
            COALESCE((
                SELECT json_agg(json_build_object(
-                          'id', c.id, 'user_id', c.user_id, 'user_name', c.user_name,
-                          'comment', c.comment, 'created_at', c.created_at,
-                          'edited_at', c.updated_at)
-                      ORDER BY c.created_at, c.id)
-               FROM comments c WHERE c.law_id = l.id
-           ), '[]'::json) AS user_notes
+                          'id', n.id, 'user_id', n.user_id, 'user_name', n.user_name,
+                          'comment', n.comment, 'created_at', n.created_at,
+                          'edited_at', n.updated_at, 'helpful_count', n.helpful)
+                      ORDER BY n.helpful DESC, n.created_at, n.id)
+               FROM (SELECT c.*, (SELECT COUNT(*) FROM comment_votes v WHERE v.comment_id = c.id) AS helpful
+                     FROM comments c WHERE c.law_id = l.id) n
+           ), '[]'::json) AS user_notes,
+           (SELECT ROUND(AVG(r.rating), 1)::float FROM law_ratings r WHERE r.law_id = l.id) AS rating_avg,
+           (SELECT COUNT(*) FROM law_ratings r WHERE r.law_id = l.id) AS rating_count
     FROM laws l
 """
 
@@ -161,10 +165,30 @@ def list_laws(conn, *, guest: bool, category=None, search=None):
     return laws, total
 
 
-def get_law(conn, law_id: int):
+def get_law(conn, law_id: int, viewer=None):
+    """One law with its notes. With a logged-in viewer it also says whether they saved it,
+    their rating, and which notes they marked helpful."""
     with conn.cursor() as cur:
         cur.execute(LAW_SELECT + " WHERE l.id = %s", (law_id,))
-        return cur.fetchone()
+        law = cur.fetchone()
+        if law is None or viewer is None:
+            return law
+        act_as(cur, viewer)  # saved_laws is private: RLS needs to know who is reading
+        cur.execute(
+            "SELECT EXISTS (SELECT 1 FROM saved_laws WHERE user_id = %s AND law_id = %s) AS saved, "
+            "(SELECT rating FROM law_ratings WHERE user_id = %s AND law_id = %s) AS my_rating",
+            (viewer["id"], law_id, viewer["id"], law_id),
+        )
+        mine = cur.fetchone()
+        cur.execute(
+            "SELECT v.comment_id FROM comment_votes v JOIN comments c ON c.id = v.comment_id "
+            "WHERE v.user_id = %s AND c.law_id = %s", (viewer["id"], law_id),
+        )
+        voted = {row["comment_id"] for row in cur.fetchall()}
+    law["saved"], law["my_rating"] = mine["saved"], mine["my_rating"]
+    for note in law["user_notes"]:
+        note["voted_by_me"] = note["id"] in voted
+    return law
 
 
 def is_in_preview(conn, law_id: int) -> bool:
@@ -232,7 +256,7 @@ def add_comment(conn, law_id: int, actor: dict, user_name: str, comment: str):
             (law_id, actor["id"], user_name, comment),
         )
     conn.commit()
-    return get_law(conn, law_id)["user_notes"]
+    return get_law(conn, law_id, actor)["user_notes"]
 
 
 def get_comment(conn, comment_id: int):
@@ -252,7 +276,7 @@ def update_comment(conn, comment_id: int, actor: dict, text: str):
         )
         row = cur.fetchone()
     conn.commit()
-    return get_law(conn, row["law_id"])["user_notes"] if row else None
+    return get_law(conn, row["law_id"], actor)["user_notes"] if row else None
 
 
 def delete_comment(conn, comment_id: int, actor: dict) -> bool:
@@ -372,14 +396,18 @@ def set_password(conn, actor: dict, password_hash: str):
     return get_user_by_id(conn, actor["id"])
 
 
-def bump_token_version(conn, actor: dict):
-    """Log out of all devices: every token issued before now stops working."""
+def bump_token_version(conn, actor: dict, target_id=None) -> bool:
+    """Log out of all devices: every token issued before now stops working.
+    target_id = another account (admins only, through the users_admin_update policy)."""
     with conn.cursor() as cur:
         act_as(cur, actor)
         cur.execute(
-            "UPDATE users SET token_version = token_version + 1 WHERE id = %s", (actor["id"],)
+            "UPDATE users SET token_version = token_version + 1 WHERE id = %s RETURNING id",
+            (target_id or actor["id"],),
         )
+        row = cur.fetchone()
     conn.commit()
+    return row is not None
 
 
 def count_admins(conn) -> int:
@@ -388,13 +416,321 @@ def count_admins(conn) -> int:
         return cur.fetchone()["n"]
 
 
-def delete_user(conn, actor: dict):
+def delete_user(conn, actor: dict, target_id=None):
     """Deletes the account in one transaction. Its comments stay on the laws, shown as
-    'Deleted user' (user_id becomes NULL through ON DELETE SET NULL)."""
+    'Deleted user' (user_id becomes NULL through ON DELETE SET NULL). Saves, ratings and
+    votes go with it. target_id = another account (admins only; never an admin account)."""
+    target = target_id or actor["id"]
     with conn.cursor() as cur:
         act_as(cur, actor)
-        cur.execute("UPDATE comments SET user_name = 'Deleted user' WHERE user_id = %s", (actor["id"],))
-        cur.execute("DELETE FROM users WHERE id = %s RETURNING id", (actor["id"],))
+        cur.execute("UPDATE comments SET user_name = 'Deleted user' WHERE user_id = %s", (target,))
+        cur.execute("DELETE FROM users WHERE id = %s RETURNING id", (target,))
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
+
+# ----------------------------------------------------------------------
+# Saved laws (private to each user)
+# ----------------------------------------------------------------------
+def list_saved(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "SELECT l.id, l.ra_number, l.plain_title, l.category, l.year, s.saved_at "
+            "FROM saved_laws s JOIN laws l ON l.id = s.law_id "
+            "WHERE s.user_id = %s ORDER BY s.saved_at DESC",
+            (actor["id"],),
+        )
+        return cur.fetchall()
+
+
+def save_law(conn, actor: dict, law_id: int):
+    """UniqueViolation if already saved (409); ForeignKeyViolation if the law is missing (404)."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO saved_laws (user_id, law_id) VALUES (%s, %s) RETURNING saved_at",
+            (actor["id"], law_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def unsave_law(conn, actor: dict, law_id: int) -> bool:
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "DELETE FROM saved_laws WHERE user_id = %s AND law_id = %s RETURNING law_id",
+            (actor["id"], law_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
+# ----------------------------------------------------------------------
+# Ratings (one per user per law)
+# ----------------------------------------------------------------------
+def rating_summary(conn, law_id: int, viewer=None):
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT ROUND(AVG(rating), 1)::float AS rating_avg, COUNT(*) AS rating_count "
+            "FROM law_ratings WHERE law_id = %s", (law_id,),
+        )
+        out = cur.fetchone()
+        if viewer:
+            cur.execute(
+                "SELECT rating FROM law_ratings WHERE user_id = %s AND law_id = %s",
+                (viewer["id"], law_id),
+            )
+            row = cur.fetchone()
+            out["my_rating"] = row["rating"] if row else None
+    return out
+
+
+def set_rating(conn, actor: dict, law_id: int, rating: int):
+    """Rating again changes the rating instead of adding a second one."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO law_ratings (user_id, law_id, rating) VALUES (%s, %s, %s) "
+            "ON CONFLICT (user_id, law_id) DO UPDATE SET rating = EXCLUDED.rating, updated_at = now()",
+            (actor["id"], law_id, rating),
+        )
+    conn.commit()
+    return rating_summary(conn, law_id, actor)
+
+
+def delete_rating(conn, actor: dict, law_id: int) -> bool:
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "DELETE FROM law_ratings WHERE user_id = %s AND law_id = %s RETURNING law_id",
+            (actor["id"], law_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
+# ----------------------------------------------------------------------
+# Helpful votes on notes
+# ----------------------------------------------------------------------
+def helpful_count(conn, comment_id: int) -> int:
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS n FROM comment_votes WHERE comment_id = %s", (comment_id,))
+        return cur.fetchone()["n"]
+
+
+def add_vote(conn, actor: dict, comment_id: int):
+    """UniqueViolation if this user already voted on the note (409)."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO comment_votes (user_id, comment_id) VALUES (%s, %s)", (actor["id"], comment_id)
+        )
+    conn.commit()
+    return helpful_count(conn, comment_id)
+
+
+def remove_vote(conn, actor: dict, comment_id: int) -> bool:
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "DELETE FROM comment_votes WHERE user_id = %s AND comment_id = %s RETURNING comment_id",
+            (actor["id"], comment_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
+# ----------------------------------------------------------------------
+# Reports on notes
+# ----------------------------------------------------------------------
+def add_report(conn, actor: dict, comment_id: int, reason: str, details):
+    """UniqueViolation if this user already reported the note (409)."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO comment_reports (comment_id, reporter_id, reason, details) "
+            "VALUES (%s, %s, %s, %s) RETURNING id, status, created_at",
+            (comment_id, actor["id"], reason, details or None),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def list_reports(conn, admin: dict, status: str):
+    """Admin queue: each report with the note, its law, its author and how many reports it has."""
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute(
+            "SELECT r.id, r.reason, r.details, r.status, r.created_at, r.resolved_at, "
+            "       c.id AS comment_id, c.comment, c.user_name AS author_name, c.user_id AS author_id, "
+            "       l.id AS law_id, l.ra_number, rep.username AS reporter, "
+            "       (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = c.id AND x.status = 'open') "
+            "         AS open_reports_on_note "
+            "FROM comment_reports r "
+            "JOIN comments c ON c.id = r.comment_id JOIN laws l ON l.id = c.law_id "
+            "LEFT JOIN users rep ON rep.id = r.reporter_id "
+            "WHERE r.status = %s ORDER BY r.created_at",
+            (status,),
+        )
+        return cur.fetchall()
+
+
+def resolve_report(conn, admin: dict, report_id: int, status: str):
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute(
+            "UPDATE comment_reports SET status = %s, resolved_by = %s, resolved_at = now() "
+            "WHERE id = %s RETURNING id, status, resolved_at",
+            (status, admin["id"], report_id),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+# ----------------------------------------------------------------------
+# Law suggestions
+# ----------------------------------------------------------------------
+SUGGESTION_COLUMNS = (
+    "s.id, s.ra_number, s.title, s.reason, s.source_url, s.status, s.admin_note, "
+    "s.created_at, s.reviewed_at, s.law_id"
+)
+
+
+def law_id_by_ra(conn, ra_number: str):
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM laws WHERE upper(ra_number) = upper(%s)", (ra_number,))
+        row = cur.fetchone()
+        return row["id"] if row else None
+
+
+def create_suggestion(conn, actor: dict, data: dict):
+    """UniqueViolation if this user already has a pending suggestion for the RA number (409)."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO law_suggestions (user_id, ra_number, title, reason, source_url) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (actor["id"], data["ra_number"], data["title"], data["reason"], data.get("source_url")),
+        )
+        new_id = cur.fetchone()["id"]
+        cur.execute(f"SELECT {SUGGESTION_COLUMNS} FROM law_suggestions s WHERE s.id = %s", (new_id,))
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def list_my_suggestions(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            f"SELECT {SUGGESTION_COLUMNS} FROM law_suggestions s WHERE s.user_id = %s "
+            "ORDER BY s.created_at DESC",
+            (actor["id"],),
+        )
+        return cur.fetchall()
+
+
+def list_suggestions(conn, admin: dict, status: str):
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute(
+            f"SELECT {SUGGESTION_COLUMNS}, u.username AS suggested_by "
+            "FROM law_suggestions s LEFT JOIN users u ON u.id = s.user_id "
+            "WHERE s.status = %s ORDER BY s.created_at",
+            (status,),
+        )
+        return cur.fetchall()
+
+
+def get_suggestion_status(conn, admin: dict, suggestion_id: int):
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute("SELECT status FROM law_suggestions WHERE id = %s", (suggestion_id,))
+        row = cur.fetchone()
+    return row["status"] if row else None
+
+
+def review_suggestion(conn, admin: dict, suggestion_id: int, status: str, admin_note, law_id):
+    """Only a pending suggestion can be reviewed; returns None otherwise."""
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute(
+            "UPDATE law_suggestions SET status = %s, admin_note = %s, law_id = %s, "
+            "reviewed_by = %s, reviewed_at = now() "
+            "WHERE id = %s AND status = 'pending' RETURNING id",
+            (status, admin_note or None, law_id, admin["id"], suggestion_id),
+        )
+        row = cur.fetchone()
+        if row:
+            cur.execute(f"SELECT {SUGGESTION_COLUMNS} FROM law_suggestions s WHERE s.id = %s", (suggestion_id,))
+            row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+# ----------------------------------------------------------------------
+# Public profiles and the admin user list
+# ----------------------------------------------------------------------
+def get_profile(conn, user_id: int):
+    """What another logged-in user may see: no email, no settings, no saved laws."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, username, display_name, bio, role, created_at FROM users WHERE id = %s",
+            (user_id,),
+        )
+        profile = cur.fetchone()
+        if profile is None:
+            return None
+        cur.execute(
+            "SELECT c.id, c.comment, c.created_at, c.updated_at AS edited_at, "
+            "       l.id AS law_id, l.ra_number, l.plain_title, "
+            "       (SELECT COUNT(*) FROM comment_votes v WHERE v.comment_id = c.id) AS helpful_count "
+            "FROM comments c JOIN laws l ON l.id = c.law_id "
+            "WHERE c.user_id = %s ORDER BY c.created_at DESC",
+            (user_id,),
+        )
+        profile["notes"] = cur.fetchall()
+    profile["note_count"] = len(profile["notes"])
+    profile["helpful_received"] = sum(n["helpful_count"] for n in profile["notes"])
+    return profile
+
+
+def list_users(conn):
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT u.id, u.username, u.display_name, u.role, u.created_at, "
+            "       u.google_sub IS NOT NULL AS google_linked, u.failed_logins, "
+            "       COALESCE(u.locked_until > now(), false) AS is_locked, "
+            "       (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id) AS note_count "
+            "FROM users u ORDER BY u.id"
+        )
+        return cur.fetchall()
+
+
+def get_user_role(conn, user_id: int):
+    with conn.cursor() as cur:
+        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        return row["role"] if row else None
+
+
+def admin_unlock(conn, admin: dict, target_id: int) -> bool:
+    with conn.cursor() as cur:
+        act_as(cur, admin)
+        cur.execute(
+            "UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = %s RETURNING id",
+            (target_id,),
+        )
         row = cur.fetchone()
     conn.commit()
     return row is not None

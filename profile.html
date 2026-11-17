@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile - L-Lawliet</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+    <button class="btn-signin">Sign In</button>
+  </nav>
+
+  <main class="settings-wrap">
+    <p id="loadError" role="alert" class="form-error"></p>
+    <section id="profile" class="hidden">
+      <div class="profile-head">
+        <h1 id="pName" style="font-family: 'Playfair Display', serif;"></h1>
+        <span id="pRole" class="role-badge hidden">Admin</span>
+      </div>
+      <p id="pMeta" style="color: var(--text-muted);"></p>
+      <p id="pBio" style="margin-top: 10px;"></p>
+      <div class="stat-row">
+        <div class="stat-box"><strong id="pNotes">0</strong><span>notes posted</span></div>
+        <div class="stat-box"><strong id="pHelpful">0</strong><span>helpful votes received</span></div>
+      </div>
+      <p id="ownLinks" class="hidden" style="margin: 8px 0 0;">
+        <a href="settings.html" style="color: var(--accent-gold);">Edit profile &amp; settings</a> &middot;
+        <a href="suggest.html" style="color: var(--accent-gold);">Suggest a law</a>
+      </p>
+    </section>
+
+    <section id="savedSection" class="settings-section hidden">
+      <h2>My saved laws</h2>
+      <p>Only you can see this list.</p>
+      <div id="savedList"></div>
+    </section>
+
+    <section id="suggestionsSection" class="settings-section hidden">
+      <h2>My law suggestions</h2>
+      <p>Laws you asked the admins to add, and what they decided.</p>
+      <div id="suggestionList"></div>
+    </section>
+
+    <section id="notesSection" class="settings-section hidden">
+      <h2>Notes</h2>
+      <div id="noteList"></div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { getAuth, apiFetch, escapeHtml: e, errorMessage } = window.LawlietAuth;
+      const $ = (id) => document.getElementById(id);
+      const auth = getAuth();
+      if (!auth) { window.location.href = "login.html"; return; }
+
+      const id = new URLSearchParams(location.search).get("id") || auth.id;
+      const own = String(id) === String(auth.id);
+      const date = (v) => (v ? new Date(v).toLocaleDateString() : "");
+      const lawLink = (lawId, ra, title) =>
+        `<a href="browse.html?law=${encodeURIComponent(lawId)}">${e(ra)}: ${e(title)}</a>`;
+
+      const res = await apiFetch(`/api/v1/users/${encodeURIComponent(id)}`);
+      if (!res.ok) { $("loadError").textContent = await errorMessage(res); return; }
+      const p = await res.json();
+      document.title = `${p.display_name || p.username} - L-Lawliet`;
+      $("pName").textContent = p.display_name || p.username;
+      if (p.role === "admin") $("pRole").classList.remove("hidden");
+      $("pMeta").textContent = `@${p.username} · member since ${date(p.created_at)}`;
+      $("pBio").textContent = p.bio || (own ? "No bio yet. Add one in Settings." : "");
+      $("pNotes").textContent = p.note_count;
+      $("pHelpful").textContent = p.helpful_received;
+      $("profile").classList.remove("hidden");
+      if (own) $("ownLinks").classList.remove("hidden");
+
+      $("notesSection").classList.remove("hidden");
+      $("noteList").innerHTML = p.notes.length
+        ? p.notes.map(n => `
+            <div class="list-card">
+              ${lawLink(n.law_id, n.ra_number, n.plain_title)}
+              <p style="margin: 6px 0;">${e(n.comment)}</p>
+              <span class="muted-small">👍 ${e(n.helpful_count)} · ${date(n.created_at)}${n.edited_at ? " · edited" : ""}</span>
+            </div>`).join("")
+        : '<p class="muted-small">No notes yet.</p>';
+
+      if (!own) return;
+
+      async function loadSaved() {
+        const r = await apiFetch("/api/v1/me/saved");
+        if (!r.ok) { $("savedList").innerHTML = `<p class="form-error">${e(await errorMessage(r))}</p>`; return; }
+        const data = await r.json();
+        $("savedList").innerHTML = data.saved.length
+          ? data.saved.map(l => `
+              <div class="list-card" style="display: flex; justify-content: space-between; gap: 10px; align-items: center;">
+                <span>${lawLink(l.id, l.ra_number, l.plain_title)}<br><span class="muted-small">${e(l.category)} · saved ${date(l.saved_at)}</span></span>
+                <button type="button" class="btn-outline" data-unsave="${e(l.id)}" style="border-radius: 6px; padding: 6px 12px; cursor: pointer;">Remove</button>
+              </div>`).join("")
+          : '<p class="muted-small">Nothing saved yet. Open a law and tap "☆ Save law".</p>';
+      }
+      $("savedList").addEventListener("click", async (ev) => {
+        const lawId = ev.target.dataset.unsave;
+        if (!lawId) return;
+        const r = await apiFetch(`/api/v1/laws/${encodeURIComponent(lawId)}/save`, { method: "DELETE" });
+        if (r.status !== 204) alert(await errorMessage(r));
+        loadSaved();
+      });
+
+      async function loadSuggestions() {
+        const r = await apiFetch("/api/v1/me/suggestions");
+        if (!r.ok) { $("suggestionList").innerHTML = `<p class="form-error">${e(await errorMessage(r))}</p>`; return; }
+        const data = await r.json();
+        $("suggestionList").innerHTML = data.suggestions.length
+          ? data.suggestions.map(s => `
+              <div class="list-card">
+                <strong>${e(s.ra_number)}: ${e(s.title)}</strong> <span class="status-chip ${e(s.status)}">${e(s.status)}</span>
+                <p class="muted-small" style="margin-top: 4px;">Sent ${date(s.created_at)}${s.reviewed_at ? " · reviewed " + date(s.reviewed_at) : ""}</p>
+                ${s.admin_note ? `<p style="margin-top: 4px;">Admin note: ${e(s.admin_note)}</p>` : ""}
+                ${s.status === "approved" && s.law_id ? `<p style="margin-top: 4px;"><a href="browse.html?law=${encodeURIComponent(s.law_id)}">Read it now &rarr;</a></p>` : ""}
+              </div>`).join("")
+          : '<p class="muted-small">No suggestions yet. <a href="suggest.html" style="color: var(--accent-gold);">Suggest a law</a></p>';
+      }
+
+      $("savedSection").classList.remove("hidden");
+      $("suggestionsSection").classList.remove("hidden");
+      $("notesSection").querySelector("h2").textContent = "My notes";
+      loadSaved();
+      loadSuggestions();
+    });
+  </script>
+</body>
+</html>

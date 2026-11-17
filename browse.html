@@ -103,13 +103,25 @@
         }
       }
 
+      const suggestLink = `<p class="suggest-link">Can't find a law? <a href="suggest.html">Suggest it to the admins &rarr;</a></p>`;
+
       function displayLaws(data) {
         lawsGrid.innerHTML = accessBanner(data);
         if (data.laws.length === 0) {
           lawsGrid.insertAdjacentHTML("beforeend", `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 40px;">No laws found matching your search or category filter.</p>`);
+          lawsGrid.insertAdjacentHTML("beforeend", suggestLink);
           return;
         }
         data.laws.forEach(law => lawsGrid.appendChild(renderCard(law, show)));
+        lawsGrid.insertAdjacentHTML("beforeend", suggestLink);
+      }
+
+      // browse.html?law=12 opens that law straight away (links from profiles and saved laws).
+      const lawParam = new URLSearchParams(window.location.search).get("law");
+      if (lawParam) {
+        apiFetch(`/api/v1/laws/${encodeURIComponent(lawParam)}`)
+          .then(async res => (res.ok ? show(await res.json()) : alert(await window.LawlietAuth.errorMessage(res))))
+          .catch(err => console.error("Could not open the law:", err));
       }
 
       let timer;
