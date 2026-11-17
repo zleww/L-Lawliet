@@ -89,11 +89,13 @@
     if (!btn) return;
     const auth = getAuth();
     if (!auth) {
+      btn.classList.add("nav-auth");
       btn.textContent = "Sign In";
       btn.onclick = () => { window.location.href = "login.html"; };
       return;
     }
     const wrap = document.createElement("div");
+    wrap.className = "nav-auth";
     wrap.style.cssText = "display:flex;align-items:center;gap:12px;";
     wrap.innerHTML = `
       <a href="settings.html" title="Profile and settings" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none;">${escapeHtml(auth.display_name || auth.username)} &#9881;</a>
@@ -106,8 +108,36 @@
     btn.replaceWith(wrap);
   }
 
+  // Phones and small tablets: a hamburger button shows and hides the links and the
+  // sign-in area (see the max-width: 900px rules in style.css). Desktop is unchanged.
+  function setUpNavToggle() {
+    const nav = document.querySelector(".navbar");
+    const links = nav && nav.querySelector(".nav-links");
+    if (!nav || !links || nav.querySelector(".nav-toggle")) return;
+    links.id = links.id || "navLinks";
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "nav-toggle";
+    toggle.setAttribute("aria-controls", links.id);
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open menu");
+    toggle.innerHTML = '<span></span><span></span><span></span>';
+    nav.querySelector(".logo").after(toggle);
+
+    function setOpen(open) {
+      nav.classList.toggle("nav-open", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    }
+    toggle.addEventListener("click", () => setOpen(!nav.classList.contains("nav-open")));
+    links.addEventListener("click", ev => { if (ev.target.closest("a")) setOpen(false); });
+    document.addEventListener("keydown", ev => { if (ev.key === "Escape") setOpen(false); });
+    window.matchMedia("(min-width: 901px)").addEventListener("change", ev => { if (ev.matches) setOpen(false); });
+  }
+
   window.LawlietAuth = {
     getAuth, setAuth, saveSession, updateUser, signOut, applyTheme, apiFetch, escapeHtml, errorMessage,
   };
-  document.addEventListener("DOMContentLoaded", renderNav);
+  document.addEventListener("DOMContentLoaded", () => { renderNav(); setUpNavToggle(); });
 })();

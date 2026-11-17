@@ -538,3 +538,77 @@ body {
   background: var(--accent-gold); color: #000; border: none; padding: 6px 14px;
   border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 6px;
 }
+
+/* ==========================================================
+   Phones and small tablets. Nothing here applies above 900px,
+   so the desktop layout is unchanged.
+   ========================================================== */
+.nav-toggle { display: none; }
+
+@media (max-width: 900px) {
+  .navbar { flex-wrap: wrap; padding: 12px 16px; gap: 0; }
+  .logo-img { height: 42px; }
+  .logo span { font-size: 1rem; }
+
+  .nav-toggle {
+    display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    width: 44px; height: 44px; margin-left: auto; padding: 10px;
+    background: none; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;
+  }
+  .nav-toggle span {
+    display: block; height: 2px; width: 100%; background: var(--text-main);
+    border-radius: 2px; transition: transform 0.2s, opacity 0.2s;
+  }
+  .nav-open .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
+  .nav-open .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* Closed: only the logo and the button show. Open: links and sign-in stack below. */
+  .navbar .nav-links, .navbar .nav-auth, .navbar .btn-signin { display: none !important; }
+  .nav-open .nav-links {
+    display: flex !important; flex-direction: column; gap: 0; width: 100%;
+    margin-top: 12px; border-top: 1px solid var(--border-color);
+  }
+  .nav-open .nav-links li { border-bottom: 1px solid var(--border-color); }
+  .nav-open .nav-links a { display: block; padding: 14px 4px; font-size: 1rem; }
+  .nav-open .nav-links a:hover, .nav-open .nav-links a.active { border-bottom: none; padding-bottom: 14px; }
+  .nav-open .nav-auth {
+    display: flex !important; width: 100%; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; padding: 14px 4px 4px;
+  }
+  .nav-open .btn-signin.nav-auth { display: block !important; width: 100%; margin-top: 14px; padding: 12px; }
+  .nav-open .nav-auth .btn-signin { display: inline-block !important; }
+
+  /* Headings and section spacing */
+  .hero { padding: 48px 16px 64px; }
+  .hero h1 { font-size: 2.6rem; }
+  .hero p { font-size: 1rem; margin-bottom: 28px; }
+  /* Home hero: the photo becomes a dimmed full background so the text stays readable. */
+  #heroSection {
+    background-image: linear-gradient(rgba(6, 13, 20, 0.72), rgba(6, 13, 20, 0.72)), url('images/hero-justice.png') !important;
+    background-size: cover; background-position: 70% center;
+  }
+  .search-container input { padding: 14px; min-width: 0; }
+  .browse-category { padding: 48px 16px; }
+  .browse-sidebar h2 { font-size: 1.9rem; }
+  .featured-law { padding: 56px 16px; }
+  .featured-content h2 { font-size: 2rem; }
+  .featured-list-box { padding: 24px; }
+  .stats-banner { padding: 32px 16px; justify-content: flex-start; }
+  .content-wrapper { margin: 40px 0; padding: 0 16px; }
+  .grid { grid-template-columns: 1fr; }
+
+  /* Law detail pop-up */
+  .modal { padding: 10px; }
+  .modal-content { padding: 20px 16px; max-height: 94vh; }
+  .modal-content h2 { font-size: 1.4rem; padding-right: 32px; }
+  .close-btn { top: 12px; right: 12px; }
+
+  /* Account pages */
+  .settings-wrap { margin: 24px auto; }
+}
+
+@media (max-width: 400px) {
+  .hero h1 { font-size: 2.2rem; }
+  .logo span { display: none; }
+}
