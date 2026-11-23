@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <script>try { if (!sessionStorage.getItem("lawliet_auth")) location.replace("landing.html"); } catch (e) {}</script>
+  <script>try { if (/[?&]guest=1/.test(location.search)) sessionStorage.setItem("lawliet_guest", "1"); if (!sessionStorage.getItem("lawliet_auth") && !sessionStorage.getItem("lawliet_guest")) location.replace("landing.html"); } catch (e) {}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>L-Lawliet - PH Laws</title>
   <link rel="icon" href="favicon.ico" sizes="48x48">
