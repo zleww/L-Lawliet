@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from index import app
 
-PUBLIC_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico"}
+PUBLIC_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webmanifest"}
 
 
 @app.get("/", include_in_schema=False)

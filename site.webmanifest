@@ -1,0 +1,20 @@
+{
+  "name": "L-Lawliet",
+  "short_name": "L-Lawliet",
+  "start_url": "index.html",
+  "display": "browser",
+  "theme_color": "#060D14",
+  "background_color": "#060D14",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
