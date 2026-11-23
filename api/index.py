@@ -32,13 +32,13 @@ from _auth import (
     require_admin, require_user, verify_google_credential,
 )
 from _models import (
-    Category, CommentEdit, CommentSubmission, DeleteAccountRequest, FlashcardCreate,
+    ArenaPrefsUpdate, ArenaResult, Category, CommentEdit, CommentSubmission, DeleteAccountRequest, FlashcardCreate,
     FlashcardUpdate, GoogleLoginRequest, LawCreate, LawUpdate, LoginRequest, PasswordChange,
     ProfileUpdate, ProgressUpdate, QuizResult, RatingRequest, RegisterRequest, ReportRequest,
     ReportReview, StudyPrefsUpdate, SuggestionCreate, SuggestionReview,
 )
 
-API_VERSION = "2.2"
+API_VERSION = "2.3"
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lawliet.api")
 
@@ -679,3 +679,46 @@ def admin_study_activity(admin: dict = Depends(require_admin), conn=Depends(db.g
     """Per-account study activity for the JurisCard admin page. No emails or password hashes."""
     users = db.admin_study_activity(conn, admin)
     return {"count": len(users), "users": users}
+
+
+# ==========================================================
+# GAME DATA for JustGiveupATP (JurisCards Arena)
+# Guests can play, but only signed-in players' results are saved.
+# ==========================================================
+@app.get("/api/v1/arena/me", tags=["Arena"])
+def arena_me(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Cases won, totals, the last 20 trials and game settings."""
+    return db.arena_record(conn, user)
+
+
+@app.post("/api/v1/arena/results", status_code=201, tags=["Arena"])
+def arena_save_result(payload: ArenaResult, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.add_arena_result(conn, user, payload.model_dump())
+
+
+@app.delete("/api/v1/arena/results", tags=["Arena"])
+def arena_clear_results(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    """Start over: removes every saved trial for this player."""
+    return {"cleared": db.clear_arena_results(conn, user)}
+
+
+@app.get("/api/v1/arena/prefs", tags=["Arena"])
+def arena_get_prefs(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.get_arena_prefs(conn, user)
+
+
+@app.patch("/api/v1/arena/prefs", tags=["Arena"])
+def arena_update_prefs(payload: ArenaPrefsUpdate, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.update_arena_prefs(conn, user, payload.model_dump(exclude_unset=True))
+
+
+@app.get("/api/v1/arena/leaderboard", tags=["Arena"])
+def arena_leaderboard(limit: int = Query(default=20, ge=1, le=100), conn=Depends(db.get_db)):
+    """Public: players ranked by different cases won. Names only, no account details."""
+    return {"players": db.arena_leaderboard(conn, limit)}
+
+
+@app.get("/api/v1/admin/arena", tags=["Admin"])
+def admin_arena(admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    """Game activity: totals, win rate per case and activity per player."""
+    return db.admin_arena(conn, admin)

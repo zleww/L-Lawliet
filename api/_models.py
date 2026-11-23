@@ -321,3 +321,36 @@ class StudyPrefsUpdate(BaseModel):
         if any(value is None for value in sent.values()):
             raise ValueError("Fields cannot be null.")
         return self
+
+
+# ----------------------------------------------------------------------
+# Game data (used by JustGiveupATP / JurisCards Arena)
+# ----------------------------------------------------------------------
+CaseId = Annotated[str, StringConstraints(min_length=1, max_length=60, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
+
+
+class ArenaResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: CaseId
+    tier: int = Field(ge=1, le=3)
+    won: bool
+    turns: int = Field(ge=0, le=500)
+    jp_left: int = Field(ge=0, le=1000)
+
+
+class ArenaPrefsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    confirm_abandon: Optional[bool] = None
+    reduce_motion: Optional[bool] = None
+    hide_won: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def at_least_one_field(self):
+        sent = self.model_dump(exclude_unset=True)
+        if not sent:
+            raise ValueError("Send at least one field to update.")
+        if any(value is None for value in sent.values()):
+            raise ValueError("Fields cannot be null.")
+        return self

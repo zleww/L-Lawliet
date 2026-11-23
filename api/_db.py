@@ -1012,3 +1012,147 @@ def admin_study_activity(conn, actor: dict):
             """
         )
         return cur.fetchall()
+
+
+# ----------------------------------------------------------------------
+# Game data (JustGiveupATP / JurisCards Arena). Tables from scripts/migrate_007_arena.sql.
+# Results are public (leaderboard); settings are private to each player.
+# ----------------------------------------------------------------------
+ARENA_PREF_COLUMNS = ("confirm_abandon", "reduce_motion", "hide_won")
+DEFAULT_ARENA_PREFS = {"confirm_abandon": True, "reduce_motion": False, "hide_won": False}
+
+
+def add_arena_result(conn, actor: dict, data: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO arena_results (user_id, case_id, tier, won, turns, jp_left) "
+            "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, case_id, tier, won, turns, jp_left, played_at",
+            (actor["id"], data["case_id"], data["tier"], data["won"], data["turns"], data["jp_left"]),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def clear_arena_results(conn, actor: dict) -> int:
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("DELETE FROM arena_results WHERE user_id = %s", (actor["id"],))
+        cleared = cur.rowcount
+    conn.commit()
+    return cleared
+
+
+def get_arena_prefs(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("SELECT confirm_abandon, reduce_motion, hide_won FROM arena_prefs WHERE user_id = %s",
+                    (actor["id"],))
+        row = cur.fetchone()
+    return dict(row) if row else dict(DEFAULT_ARENA_PREFS)
+
+
+def update_arena_prefs(conn, actor: dict, changes: dict):
+    merged = {**get_arena_prefs(conn, actor), **{c: changes[c] for c in ARENA_PREF_COLUMNS if c in changes}}
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO arena_prefs (user_id, confirm_abandon, reduce_motion, hide_won) "
+            "VALUES (%s, %s, %s, %s) ON CONFLICT (user_id) DO UPDATE SET "
+            "confirm_abandon = EXCLUDED.confirm_abandon, reduce_motion = EXCLUDED.reduce_motion, "
+            "hide_won = EXCLUDED.hide_won, updated_at = now()",
+            (actor["id"], merged["confirm_abandon"], merged["reduce_motion"], merged["hide_won"]),
+        )
+    conn.commit()
+    return merged
+
+
+def arena_record(conn, actor: dict, history_limit: int = 20):
+    """Cases won, totals and recent trials for one player."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "SELECT case_id, COUNT(*) AS wins, MIN(turns) AS best_turns, MAX(jp_left) AS best_jp "
+            "FROM arena_results WHERE user_id = %s AND won GROUP BY case_id ORDER BY case_id",
+            (actor["id"],),
+        )
+        won = cur.fetchall()
+        cur.execute(
+            "SELECT COUNT(*) AS trials, COUNT(*) FILTER (WHERE won) AS wins FROM arena_results WHERE user_id = %s",
+            (actor["id"],),
+        )
+        totals = cur.fetchone()
+        cur.execute(
+            "SELECT id, case_id, tier, won, turns, jp_left, played_at FROM arena_results "
+            "WHERE user_id = %s ORDER BY played_at DESC, id DESC LIMIT %s",
+            (actor["id"], history_limit),
+        )
+        history = cur.fetchall()
+    return {
+        "cases_won": won,
+        "trials": totals["trials"],
+        "wins": totals["wins"],
+        "history": history,
+        "prefs": get_arena_prefs(conn, actor),
+    }
+
+
+def arena_leaderboard(conn, limit: int = 20):
+    """Players ranked by different cases won, then total wins. Display names only."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT u.id AS user_id, COALESCE(u.display_name, u.username) AS name, u.username,
+                   COUNT(DISTINCT r.case_id) FILTER (WHERE r.won) AS cases_won,
+                   COUNT(*) FILTER (WHERE r.won)                  AS wins,
+                   COUNT(*)                                       AS trials,
+                   MAX(r.played_at)                               AS last_played
+            FROM arena_results r JOIN users u ON u.id = r.user_id
+            GROUP BY u.id
+            HAVING COUNT(*) FILTER (WHERE r.won) > 0
+            ORDER BY cases_won DESC, wins DESC, last_played ASC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        return cur.fetchall()
+
+
+def admin_arena(conn, actor: dict):
+    """Game activity across all players, for the JustGiveupATP admin page."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            """
+            SELECT COUNT(DISTINCT user_id)                                   AS players,
+                   COUNT(*)                                                  AS trials,
+                   COUNT(*) FILTER (WHERE won)                               AS wins,
+                   COUNT(*) FILTER (WHERE played_at >= now() - interval '7 days') AS trials_this_week
+            FROM arena_results
+            """
+        )
+        overview = cur.fetchone()
+        cur.execute(
+            """
+            SELECT case_id, MIN(tier) AS tier, COUNT(*) AS trials,
+                   COUNT(*) FILTER (WHERE won) AS wins,
+                   COUNT(DISTINCT user_id) AS players,
+                   ROUND(AVG(turns) FILTER (WHERE won), 1) AS avg_turns_to_win
+            FROM arena_results GROUP BY case_id ORDER BY MIN(tier), case_id
+            """
+        )
+        cases = cur.fetchall()
+        cur.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.role, u.created_at,
+                   COUNT(r.id)                                     AS trials,
+                   COUNT(r.id) FILTER (WHERE r.won)                AS wins,
+                   COUNT(DISTINCT r.case_id) FILTER (WHERE r.won)  AS cases_won,
+                   MAX(r.played_at)                                AS last_played
+            FROM users u LEFT JOIN arena_results r ON r.user_id = u.id
+            GROUP BY u.id ORDER BY last_played DESC NULLS LAST, u.created_at DESC
+            """
+        )
+        players = cur.fetchall()
+    return {"overview": overview, "cases": cases, "players": players}
