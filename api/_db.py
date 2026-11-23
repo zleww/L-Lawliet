@@ -734,3 +734,281 @@ def admin_unlock(conn, admin: dict, target_id: int) -> bool:
         row = cur.fetchone()
     conn.commit()
     return row is not None
+
+
+# ----------------------------------------------------------------------
+# Study data (JurisCard). Every query runs after act_as, because the RLS policies
+# in scripts/migrate_006_study.sql only show a user their own rows.
+# ----------------------------------------------------------------------
+FLASHCARD_COLUMNS = ("category", "question", "answer", "source", "status")
+PREF_COLUMNS = ("quiz_length", "daily_goal", "hide_mastered")
+DEFAULT_PREFS = {"quiz_length": 10, "daily_goal": 10, "hide_mastered": False}
+
+# Midnight today in the Philippines, so "today" matches the student's clock.
+TODAY_START = "(date_trunc('day', now() AT TIME ZONE 'Asia/Manila') AT TIME ZONE 'Asia/Manila')"
+
+FLASHCARD_SELECT = (
+    "SELECT id, category, question, answer, source, status, created_at, updated_at FROM flashcards"
+)
+
+
+def list_flashcards(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(FLASHCARD_SELECT + " WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+                    (actor["id"],))
+        return cur.fetchall()
+
+
+def create_flashcard(conn, actor: dict, data: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO flashcards (user_id, category, question, answer, source) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (actor["id"], data["category"], data["question"], data["answer"], data.get("source") or None),
+        )
+        new_id = cur.fetchone()["id"]
+        cur.execute(FLASHCARD_SELECT + " WHERE id = %s", (new_id,))
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def update_flashcard(conn, actor: dict, card_id: int, changes: dict):
+    """Returns None when the card does not exist or belongs to someone else (RLS hides it)."""
+    cols = [c for c in FLASHCARD_COLUMNS if c in changes]  # whitelist: never trust request keys
+    values = [(changes[c] or None) if c == "source" else changes[c] for c in cols]
+    sets = ", ".join(f"{c} = %s" for c in cols) + ", updated_at = now()"
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(f"UPDATE flashcards SET {sets} WHERE id = %s AND user_id = %s RETURNING id",
+                    values + [card_id, actor["id"]])
+        found = cur.fetchone()
+        row = None
+        if found:
+            cur.execute(FLASHCARD_SELECT + " WHERE id = %s", (card_id,))
+            row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def delete_flashcard(conn, actor: dict, card_id: int) -> bool:
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("DELETE FROM flashcards WHERE id = %s AND user_id = %s RETURNING id",
+                    (card_id, actor["id"]))
+        row = cur.fetchone()
+    conn.commit()
+    return row is not None
+
+
+def list_progress(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("SELECT law_id, status, updated_at FROM law_progress WHERE user_id = %s ORDER BY law_id",
+                    (actor["id"],))
+        return cur.fetchall()
+
+
+def set_progress(conn, actor: dict, law_id: int, status: str):
+    """'review' or 'mastered' saves the mark; 'new' removes it. Raises ForeignKeyViolation
+    (mapped to 404) if the law does not exist."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        if status == "new":
+            cur.execute("DELETE FROM law_progress WHERE user_id = %s AND law_id = %s", (actor["id"], law_id))
+        else:
+            cur.execute(
+                "INSERT INTO law_progress (user_id, law_id, status) VALUES (%s, %s, %s) "
+                "ON CONFLICT (user_id, law_id) DO UPDATE SET status = EXCLUDED.status, updated_at = now()",
+                (actor["id"], law_id, status),
+            )
+    conn.commit()
+    return {"law_id": law_id, "status": status}
+
+
+def reset_progress(conn, actor: dict) -> int:
+    """Clears every law mark and sets the user's own cards back to 'new'."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("DELETE FROM law_progress WHERE user_id = %s", (actor["id"],))
+        cleared = cur.rowcount
+        cur.execute("UPDATE flashcards SET status = 'new', updated_at = now() "
+                    "WHERE user_id = %s AND status <> 'new'", (actor["id"],))
+        cleared += cur.rowcount
+    conn.commit()
+    return cleared
+
+
+def add_quiz_attempt(conn, actor: dict, data: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO quiz_attempts (user_id, category, score, total) VALUES (%s, %s, %s, %s) "
+            "RETURNING id, category, score, total, taken_at",
+            (actor["id"], data.get("category"), data["score"], data["total"]),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    return row
+
+
+def list_quiz_attempts(conn, actor: dict, limit: int = 20):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "SELECT id, category, score, total, taken_at FROM quiz_attempts WHERE user_id = %s "
+            "ORDER BY taken_at DESC, id DESC LIMIT %s",
+            (actor["id"], limit),
+        )
+        return cur.fetchall()
+
+
+def get_prefs(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute("SELECT quiz_length, daily_goal, hide_mastered FROM study_prefs WHERE user_id = %s",
+                    (actor["id"],))
+        row = cur.fetchone()
+    return dict(row) if row else dict(DEFAULT_PREFS)
+
+
+def update_prefs(conn, actor: dict, changes: dict):
+    merged = {**get_prefs(conn, actor), **{c: changes[c] for c in PREF_COLUMNS if c in changes}}
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            "INSERT INTO study_prefs (user_id, quiz_length, daily_goal, hide_mastered) "
+            "VALUES (%s, %s, %s, %s) ON CONFLICT (user_id) DO UPDATE SET "
+            "quiz_length = EXCLUDED.quiz_length, daily_goal = EXCLUDED.daily_goal, "
+            "hide_mastered = EXCLUDED.hide_mastered, updated_at = now()",
+            (actor["id"], merged["quiz_length"], merged["daily_goal"], merged["hide_mastered"]),
+        )
+    conn.commit()
+    return merged
+
+
+def study_summary(conn, actor: dict):
+    """Everything the JurisCard dashboard and review pages show, in one round trip."""
+    uid = actor["id"]
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        # Per category: laws in the database, and how many of them / of my own cards I marked.
+        cur.execute(
+            """
+            SELECT l.category,
+                   COUNT(l.id)                                          AS laws,
+                   COUNT(p.law_id) FILTER (WHERE p.status = 'mastered') AS laws_mastered,
+                   COUNT(p.law_id) FILTER (WHERE p.status = 'review')   AS laws_review
+            FROM laws l
+            LEFT JOIN law_progress p ON p.law_id = l.id AND p.user_id = %s
+            GROUP BY l.category ORDER BY l.category
+            """,
+            (uid,),
+        )
+        by_category = {r["category"]: {**r, "cards": 0, "cards_mastered": 0, "cards_review": 0}
+                       for r in cur.fetchall()}
+        cur.execute(
+            "SELECT category, COUNT(*) AS cards, "
+            "COUNT(*) FILTER (WHERE status = 'mastered') AS cards_mastered, "
+            "COUNT(*) FILTER (WHERE status = 'review') AS cards_review "
+            "FROM flashcards WHERE user_id = %s GROUP BY category",
+            (uid,),
+        )
+        for r in cur.fetchall():
+            row = by_category.setdefault(r["category"], {
+                "category": r["category"], "laws": 0, "laws_mastered": 0, "laws_review": 0})
+            row.update(cards=r["cards"], cards_mastered=r["cards_mastered"], cards_review=r["cards_review"])
+
+        cur.execute(
+            f"SELECT (SELECT COUNT(*) FROM law_progress WHERE user_id = %s AND updated_at >= {TODAY_START})"
+            f" + (SELECT COUNT(*) FROM flashcards WHERE user_id = %s AND status <> 'new'"
+            f"    AND updated_at >= {TODAY_START}) AS marked_today",
+            (uid, uid),
+        )
+        marked_today = cur.fetchone()["marked_today"]
+
+        cur.execute(
+            "SELECT COUNT(*) AS attempts, "
+            "ROUND(AVG(score * 100.0 / total))::int AS average_pct, "
+            "MAX(ROUND(score * 100.0 / total))::int AS best_pct "
+            "FROM quiz_attempts WHERE user_id = %s",
+            (uid,),
+        )
+        quizzes = cur.fetchone()
+
+        # Latest things the user did, newest first.
+        cur.execute(
+            """
+            (SELECT 'progress' AS kind, p.law_id AS ref_id, p.updated_at AS at, p.status AS detail,
+                    l.ra_number AS title, l.plain_title AS subtitle, l.category
+             FROM law_progress p JOIN laws l ON l.id = p.law_id WHERE p.user_id = %s
+             ORDER BY p.updated_at DESC LIMIT 8)
+            UNION ALL
+            (SELECT 'quiz', id, taken_at, score || ' / ' || total, NULL, NULL, category
+             FROM quiz_attempts WHERE user_id = %s ORDER BY taken_at DESC LIMIT 8)
+            UNION ALL
+            (SELECT 'card', id, created_at, NULL, NULL, question, category
+             FROM flashcards WHERE user_id = %s ORDER BY created_at DESC LIMIT 8)
+            ORDER BY at DESC LIMIT 8
+            """,
+            (uid, uid, uid),
+        )
+        recent = cur.fetchall()
+    return {
+        "categories": list(by_category.values()),
+        "marked_today": marked_today,
+        "quizzes": quizzes,
+        "recent": recent,
+        "prefs": get_prefs(conn, actor),
+    }
+
+
+# ----------------------------------------------------------------------
+# Admin overview (read only)
+# ----------------------------------------------------------------------
+def admin_overview(conn, actor: dict):
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            """
+            SELECT (SELECT COUNT(*) FROM users)                                       AS users,
+                   (SELECT COUNT(*) FROM users WHERE role = 'admin')                  AS admins,
+                   (SELECT COUNT(*) FROM users
+                     WHERE created_at >= now() - interval '7 days')                   AS new_this_week,
+                   (SELECT COUNT(*) FROM laws)                                        AS laws,
+                   (SELECT COUNT(*) FROM comments)                                    AS comments,
+                   (SELECT COUNT(*) FROM flashcards)                                  AS flashcards,
+                   (SELECT COUNT(*) FROM law_progress WHERE status = 'mastered')      AS laws_mastered,
+                   (SELECT COUNT(*) FROM quiz_attempts)                               AS quiz_attempts,
+                   (SELECT ROUND(AVG(score * 100.0 / total))::int FROM quiz_attempts) AS quiz_average_pct
+            """
+        )
+        return cur.fetchone()
+
+
+def admin_study_activity(conn, actor: dict):
+    """Accounts with their study activity. No password hashes, emails or Google ids."""
+    with conn.cursor() as cur:
+        act_as(cur, actor)
+        cur.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.role, u.created_at,
+                   (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id)          AS notes,
+                   (SELECT COUNT(*) FROM flashcards f WHERE f.user_id = u.id)        AS flashcards,
+                   (SELECT COUNT(*) FROM law_progress p
+                     WHERE p.user_id = u.id AND p.status = 'mastered')               AS laws_mastered,
+                   (SELECT COUNT(*) FROM quiz_attempts q WHERE q.user_id = u.id)     AS quizzes,
+                   (SELECT ROUND(AVG(q.score * 100.0 / q.total))::int
+                      FROM quiz_attempts q WHERE q.user_id = u.id)                   AS quiz_average_pct,
+                   GREATEST(
+                       (SELECT MAX(updated_at) FROM law_progress p WHERE p.user_id = u.id),
+                       (SELECT MAX(taken_at)   FROM quiz_attempts q WHERE q.user_id = u.id),
+                       (SELECT MAX(updated_at) FROM flashcards f WHERE f.user_id = u.id),
+                       (SELECT MAX(created_at) FROM comments c WHERE c.user_id = u.id)
+                   ) AS last_active
+            FROM users u ORDER BY u.created_at DESC, u.id DESC
+            """
+        )
+        return cur.fetchall()

@@ -15,7 +15,7 @@
       <h3>${e(law.ra_number)}</h3>
       <h4>${e(law.plain_title)}</h4>
       <p class="summary">${e(law.tldr_summary)}</p>
-      <span class="click-more">Click to view full details &rarr;</span>
+      <span class="click-more">Read more</span>
       ${law.rating_count ? `<span class="card-rating" title="Average rating">★ ${e(law.rating_avg)} (${e(law.rating_count)})</span>` : ""}
     `;
     card.addEventListener("click", () => onOpen(law));
@@ -52,7 +52,7 @@
     return `
       <div class="law-engage">
         <div class="law-rating"><strong>★ ${avg}</strong> <span class="muted-small">${count}</span> ${stars}</div>
-        ${auth ? `<button type="button" class="save-btn ${law.saved ? "on" : ""}" data-save aria-pressed="${law.saved ? "true" : "false"}">${law.saved ? "★ Saved" : "☆ Save law"}</button>` : ""}
+        ${auth ? `<button type="button" class="save-btn ${law.saved ? "on" : ""}" data-save aria-pressed="${law.saved ? "true" : "false"}">${law.saved ? "Saved" : "Save law"}</button>` : ""}
       </div>
       <p class="engage-error form-error" role="alert"></p>`;
   }
@@ -63,8 +63,8 @@
       ? `<a class="note-author" href="profile.html?id=${encodeURIComponent(n.user_id)}">${e(n.user_name)}</a>`
       : `<strong>${e(n.user_name)}</strong>`;
     const helpful = auth && !mine
-      ? `<button type="button" class="helpful-btn ${n.voted_by_me ? "on" : ""}" data-vote aria-pressed="${n.voted_by_me ? "true" : "false"}" title="Mark as helpful">👍 ${e(n.helpful_count || 0)}</button>`
-      : `<span class="helpful-count" title="Marked helpful">👍 ${e(n.helpful_count || 0)}</span>`;
+      ? `<button type="button" class="helpful-btn ${n.voted_by_me ? "on" : ""}" data-vote aria-pressed="${n.voted_by_me ? "true" : "false"}" title="Mark as helpful">Helpful ${e(n.helpful_count || 0)}</button>`
+      : `<span class="helpful-count" title="Marked helpful">Helpful ${e(n.helpful_count || 0)}</span>`;
     const actions = [];
     if (mine) actions.push('<button type="button" class="note-edit-btn">Edit</button>');
     if (mine || (auth && auth.role === "admin")) actions.push('<button type="button" class="note-delete-btn">Delete</button>');
@@ -104,8 +104,8 @@
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
         <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${e(law.category)} (${e(law.year)})</span>
         <span style="background: var(--chip-bg); color: var(--text-main); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">Status: <strong>${e(law.status)}</strong></span>
-        <span style="background: var(--chip-bg); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">⏱️ ${e(law.reading_time_minutes)} min read</span>
-        <span style="background: rgba(200, 155, 83, 0.1); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">⭐ Impact: ${e(law.importance_rating)}/5</span>
+        <span style="background: var(--chip-bg); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">${e(law.reading_time_minutes)} min read</span>
+        <span style="background: rgba(200, 155, 83, 0.1); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;">Impact ${e(law.importance_rating)} of 5</span>
       </div>
 
       <h2 style="color: var(--accent-gold); margin-bottom: 4px;">${e(law.ra_number)}: ${e(law.plain_title)}</h2>
@@ -130,7 +130,7 @@
 
       <div class="detail-section" style="margin-bottom: 20px;">
         <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Official Source</h4>
-        <a href="${e(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: underline;">Read official gazette filing &rarr;</a>
+        <a href="${e(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: underline;">Read the full text in the Official Gazette</a>
       </div>
 
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">

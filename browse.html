@@ -29,11 +29,11 @@
   <header class="hero" style="padding: 40px 4vw 60px;">
     <div class="hero-content" style="max-width: 800px;">
       <h1>Browse All <span class="gold-text">Republic Acts.</span></h1>
-      <p>Explore our database of Philippine laws explained in plain English. Use the search bar or category filters below.</p>
+      <p>Search by RA number, title or topic, or narrow the list by category.</p>
       
       <div class="search-container" style="margin-top: 20px;">
         <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
-        <button class="search-btn">🔍</button>
+        <button class="search-btn" style="font-size: 0.9rem; font-weight: 600;">Search</button>
       </div>
     </div>
   </header>
@@ -82,8 +82,11 @@
       let currentCategory = "All";
       let requestNo = 0;
 
-      const initialSearch = new URLSearchParams(window.location.search).get("search");
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialSearch = urlParams.get("search");
       if (initialSearch && searchInput) searchInput.value = initialSearch;
+      const initialCategory = urlParams.get("category");
+      const startButton = [...filterButtons].find(b => b.dataset.category === initialCategory);
 
       async function fetchLaws() {
         const params = new URLSearchParams();
@@ -103,7 +106,7 @@
         }
       }
 
-      const suggestLink = `<p class="suggest-link">Can't find a law? <a href="suggest.html">Suggest it to the admins &rarr;</a></p>`;
+      const suggestLink = `<p class="suggest-link">Can't find a law? <a href="suggest.html">Suggest it to the admins</a></p>`;
 
       function displayLaws(data) {
         lawsGrid.innerHTML = accessBanner(data);
@@ -151,7 +154,7 @@
       });
 
       wireModalClose(modal, document.getElementById("closeModal"));
-      fetchLaws();
+      if (startButton) startButton.click(); else fetchLaws();
     });
   </script>
 </body>

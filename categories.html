@@ -30,7 +30,7 @@
   <header class="hero" style="padding: 60px 4vw 40px;">
     <div class="hero-content" style="max-width: 800px;">
       <h1>Explore Laws by <span class="gold-text">Category.</span></h1>
-      <p>Find legislation structured by the sectors and topics that matter most to your daily life, business, and rights.</p>
+      <p>Every law in the database is filed under one of these six categories.</p>
     </div>
   </header>
 
@@ -39,43 +39,51 @@
     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;">
       
       <!-- Category 1 -->
-      <div class="card cat-card" onclick="location.href='browse.html'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+      <div class="card cat-card" onclick="location.href='browse.html?category=Technology%20%26%20Crime'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
         <img src="images/tech-icon.png" alt="Tech" style="height: 50px; margin-bottom: 20px;" />
         <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Technology & Crime</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Covers cybercrime prevention, data privacy, online defamation, and digital security measures.</p>
-        <span class="click-more">Browse Technology Laws &rarr;</span>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Cybercrime, data privacy, wiretapping and electronic evidence.</p>
+        <span class="click-more">Browse these laws</span>
       </div>
 
       <!-- Category 2 -->
-      <div class="card cat-card" onclick="location.href='browse.html'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+      <div class="card cat-card" onclick="location.href='browse.html?category=Finance%20%26%20Taxes'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
         <img src="images/finance-icon.png" alt="Finance" style="height: 50px; margin-bottom: 20px;" />
         <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Finance & Taxes</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Includes personal income tax reform, revenue rules, consumer taxation, and fiscal policies.</p>
-        <span class="click-more">Browse Finance Laws &rarr;</span>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Income tax, excise tax and filing with the BIR.</p>
+        <span class="click-more">Browse these laws</span>
       </div>
 
       <!-- Category 3 -->
-      <div class="card cat-card" onclick="location.href='browse.html'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+      <div class="card cat-card" onclick="location.href='browse.html?category=Governance%20%26%20Business'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
         <img src="images/gov-icon.png" alt="Governance" style="height: 50px; margin-bottom: 20px;" />
         <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Governance & Business</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Focuses on anti-red tape, ease of doing business, intellectual property, and trade regulations.</p>
-        <span class="click-more">Browse Governance Laws &rarr;</span>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Red tape, consumer rights, small business, intellectual property and the conduct of public officials.</p>
+        <span class="click-more">Browse these laws</span>
       </div>
 
       <!-- Category 4 -->
-      <div class="card cat-card" onclick="location.href='browse.html'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
-        <span style="font-size: 3rem; display: block; margin-bottom: 15px;">🛡️</span>
+      <div class="card cat-card" onclick="location.href='browse.html?category=Social%20%26%20Welfare'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+        <svg width="50" height="50" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--accent-gold); margin-bottom: 20px;"><circle cx="17" cy="16" r="6"/><circle cx="33" cy="18" r="5"/><path d="M6 38c0-7 5-12 11-12s11 5 11 12"/><path d="M28 30c1.5-2.5 3.5-4 6-4 5 0 8 4 8 10"/></svg>
         <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Social & Welfare</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Protects senior citizens, safeguards women and children from abuse, safe spaces, and public health.</p>
-        <span class="click-more">Browse Social Laws &rarr;</span>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Senior citizens, women and children, health coverage, drugs and harassment.</p>
+        <span class="click-more">Browse these laws</span>
       </div>
 
       <!-- Category 5 -->
-      <div class="card cat-card" onclick="location.href='browse.html'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
-        <span style="font-size: 3rem; display: block; margin-bottom: 15px;">🌿</span>
+      <div class="card cat-card" onclick="location.href='browse.html?category=Environment'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+        <svg width="50" height="50" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--accent-gold); margin-bottom: 20px;"><path d="M10 38C10 20 22 10 40 8c0 18-10 30-26 30"/><path d="M10 38l16-16"/></svg>
         <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Environment</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Covers solid waste management, clean air regulations, water quality protection, and ecology.</p>
-        <span class="click-more">Browse Environmental Laws &rarr;</span>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Garbage segregation, clean air, clean water and climate action.</p>
+        <span class="click-more">Browse these laws</span>
+      </div>
+
+      <!-- Category 6 -->
+      <div class="card cat-card" onclick="location.href='browse.html?category=Education%20%26%20Civil%20Rights'" style="cursor: pointer; padding: 40px 30px; text-align: center;">
+        <svg width="50" height="50" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--accent-gold); margin-bottom: 20px;"><path d="M4 18l20-9 20 9-20 9z"/><path d="M12 22v10c0 3 5 6 12 6s12-3 12-6V22"/><path d="M44 18v12"/></svg>
+        <h3 style="color: var(--accent-gold); font-size: 1.4rem; margin-bottom: 10px; font-family: 'Playfair Display', serif;">Education & Civil Rights</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Bullying, free tuition, K to 12, harassment in schools and the rights of persons with disability.</p>
+        <span class="click-more">Browse these laws</span>
       </div>
 
     </div>

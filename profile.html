@@ -91,7 +91,7 @@
             <div class="list-card">
               ${lawLink(n.law_id, n.ra_number, n.plain_title)}
               <p style="margin: 6px 0;">${e(n.comment)}</p>
-              <span class="muted-small">👍 ${e(n.helpful_count)} · ${date(n.created_at)}${n.edited_at ? " · edited" : ""}</span>
+              <span class="muted-small">${e(n.helpful_count)} helpful · ${date(n.created_at)}${n.edited_at ? " · edited" : ""}</span>
             </div>`).join("")
         : '<p class="muted-small">No notes yet.</p>';
 
@@ -107,7 +107,7 @@
                 <span>${lawLink(l.id, l.ra_number, l.plain_title)}<br><span class="muted-small">${e(l.category)} · saved ${date(l.saved_at)}</span></span>
                 <button type="button" class="btn-outline" data-unsave="${e(l.id)}" style="border-radius: 6px; padding: 6px 12px; cursor: pointer;">Remove</button>
               </div>`).join("")
-          : '<p class="muted-small">Nothing saved yet. Open a law and tap "☆ Save law".</p>';
+          : '<p class="muted-small">Nothing saved yet. Open a law and tap "Save law".</p>';
       }
       $("savedList").addEventListener("click", async (ev) => {
         const lawId = ev.target.dataset.unsave;
@@ -127,7 +127,7 @@
                 <strong>${e(s.ra_number)}: ${e(s.title)}</strong> <span class="status-chip ${e(s.status)}">${e(s.status)}</span>
                 <p class="muted-small" style="margin-top: 4px;">Sent ${date(s.created_at)}${s.reviewed_at ? " · reviewed " + date(s.reviewed_at) : ""}</p>
                 ${s.admin_note ? `<p style="margin-top: 4px;">Admin note: ${e(s.admin_note)}</p>` : ""}
-                ${s.status === "approved" && s.law_id ? `<p style="margin-top: 4px;"><a href="browse.html?law=${encodeURIComponent(s.law_id)}">Read it now &rarr;</a></p>` : ""}
+                ${s.status === "approved" && s.law_id ? `<p style="margin-top: 4px;"><a href="browse.html?law=${encodeURIComponent(s.law_id)}">Read it now</a></p>` : ""}
               </div>`).join("")
           : '<p class="muted-small">No suggestions yet. <a href="suggest.html" style="color: var(--accent-gold);">Suggest a law</a></p>';
       }

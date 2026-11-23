@@ -32,12 +32,13 @@ from _auth import (
     require_admin, require_user, verify_google_credential,
 )
 from _models import (
-    Category, CommentEdit, CommentSubmission, DeleteAccountRequest, GoogleLoginRequest,
-    LawCreate, LawUpdate, LoginRequest, PasswordChange, ProfileUpdate, RatingRequest,
-    RegisterRequest, ReportRequest, ReportReview, SuggestionCreate, SuggestionReview,
+    Category, CommentEdit, CommentSubmission, DeleteAccountRequest, FlashcardCreate,
+    FlashcardUpdate, GoogleLoginRequest, LawCreate, LawUpdate, LoginRequest, PasswordChange,
+    ProfileUpdate, ProgressUpdate, QuizResult, RatingRequest, RegisterRequest, ReportRequest,
+    ReportReview, StudyPrefsUpdate, SuggestionCreate, SuggestionReview,
 )
 
-API_VERSION = "2.1"
+API_VERSION = "2.2"
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lawliet.api")
 
@@ -55,7 +56,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=False,  # tokens travel in the Authorization header, not cookies
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     # X-API-Key is still accepted in CORS only because JurisCard and JustGiveupATP send it;
     # the API ignores its value, so those sites are treated as guests.
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
@@ -361,7 +362,7 @@ def add_user_comment(
     user: dict = Depends(require_user), conn=Depends(db.get_db),
 ):
     comments = db.add_comment(conn, law_id, user, payload.user_name, payload.comment)
-    return {"message": "Knowledge added successfully!", "comments": comments}
+    return {"message": "Note added.", "comments": comments}
 
 
 # ==========================================================
@@ -584,3 +585,97 @@ def admin_delete_user(user_id: int, admin: dict = Depends(require_admin), conn=D
     if not db.delete_user(conn, admin, user_id):
         raise HTTPException(status_code=403, detail="You are not allowed to do that.")
     return Response(status_code=204)
+
+
+# ==========================================================
+# STUDY DATA for JurisCard (User or admin, own rows only)
+# Guests can study on JurisCard too, but nothing they do is saved.
+# ==========================================================
+@app.get("/api/v1/study/summary", tags=["Study"])
+def study_summary(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.study_summary(conn, user)
+
+
+@app.get("/api/v1/study/progress", tags=["Study"])
+def get_progress(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return {"progress": db.list_progress(conn, user)}
+
+
+@app.put("/api/v1/study/progress/{law_id}", tags=["Study"])
+def set_progress(
+    law_id: int, payload: ProgressUpdate,
+    user: dict = Depends(require_user), conn=Depends(db.get_db),
+):
+    return db.set_progress(conn, user, law_id, payload.status)
+
+
+@app.delete("/api/v1/study/progress", tags=["Study"])
+def reset_progress(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return {"cleared": db.reset_progress(conn, user)}
+
+
+@app.get("/api/v1/study/cards", tags=["Study"])
+def list_cards(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    cards = db.list_flashcards(conn, user)
+    return {"count": len(cards), "cards": cards}
+
+
+@app.post("/api/v1/study/cards", status_code=201, tags=["Study"])
+def create_card(payload: FlashcardCreate, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.create_flashcard(conn, user, payload.model_dump())
+
+
+@app.patch("/api/v1/study/cards/{card_id}", tags=["Study"])
+def update_card(
+    card_id: int, payload: FlashcardUpdate,
+    user: dict = Depends(require_user), conn=Depends(db.get_db),
+):
+    card = db.update_flashcard(conn, user, card_id, payload.model_dump(exclude_unset=True))
+    if card is None:
+        raise HTTPException(status_code=404, detail="Card not found.")
+    return card
+
+
+@app.delete("/api/v1/study/cards/{card_id}", status_code=204, tags=["Study"])
+def delete_card(card_id: int, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    if not db.delete_flashcard(conn, user, card_id):
+        raise HTTPException(status_code=404, detail="Card not found.")
+    return Response(status_code=204)
+
+
+@app.get("/api/v1/study/quizzes", tags=["Study"])
+def list_quizzes(
+    limit: int = Query(default=20, ge=1, le=100),
+    user: dict = Depends(require_user), conn=Depends(db.get_db),
+):
+    return {"attempts": db.list_quiz_attempts(conn, user, limit)}
+
+
+@app.post("/api/v1/study/quizzes", status_code=201, tags=["Study"])
+def save_quiz(payload: QuizResult, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.add_quiz_attempt(conn, user, payload.model_dump())
+
+
+@app.get("/api/v1/study/prefs", tags=["Study"])
+def get_prefs(user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.get_prefs(conn, user)
+
+
+@app.patch("/api/v1/study/prefs", tags=["Study"])
+def update_prefs(payload: StudyPrefsUpdate, user: dict = Depends(require_user), conn=Depends(db.get_db)):
+    return db.update_prefs(conn, user, payload.model_dump(exclude_unset=True))
+
+
+# ==========================================================
+# ADMIN: study activity for JurisCard (Admin, read only)
+# ==========================================================
+@app.get("/api/v1/admin/overview", tags=["Admin"])
+def admin_overview(admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    return db.admin_overview(conn, admin)
+
+
+@app.get("/api/v1/admin/study-activity", tags=["Admin"])
+def admin_study_activity(admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
+    """Per-account study activity for the JurisCard admin page. No emails or password hashes."""
+    users = db.admin_study_activity(conn, admin)
+    return {"count": len(users), "users": users}

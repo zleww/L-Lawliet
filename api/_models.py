@@ -247,3 +247,77 @@ class SuggestionReview(BaseModel):
         if self.status == "approved" and self.law_id is None:
             raise ValueError("Approving needs law_id: the law created for this suggestion.")
         return self
+
+
+# ----------------------------------------------------------------------
+# Study data (used by JurisCard)
+# ----------------------------------------------------------------------
+CardStatus = Literal["new", "review", "mastered"]
+
+
+class FlashcardCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    category: Category
+    question: Text(5, 300)
+    answer: Text(2, 1500)
+    source: Optional[Text(0, 100)] = None
+
+
+class FlashcardUpdate(BaseModel):
+    """Every field optional, at least one required."""
+    model_config = ConfigDict(extra="forbid")
+
+    category: Optional[Category] = None
+    question: Optional[Text(5, 300)] = None
+    answer: Optional[Text(2, 1500)] = None
+    source: Optional[Text(0, 100)] = None
+    status: Optional[CardStatus] = None
+
+    @model_validator(mode="after")
+    def at_least_one_field(self):
+        sent = self.model_dump(exclude_unset=True)
+        if not sent:
+            raise ValueError("Send at least one field to update.")
+        nulls = [name for name, value in sent.items() if value is None and name != "source"]
+        if nulls:
+            raise ValueError(f"These fields cannot be null: {', '.join(nulls)}")
+        return self
+
+
+class ProgressUpdate(BaseModel):
+    """'new' clears the mark."""
+    model_config = ConfigDict(extra="forbid")
+
+    status: CardStatus
+
+
+class QuizResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    score: int = Field(ge=0, le=50)
+    total: int = Field(ge=1, le=50)
+    category: Optional[Category] = None
+
+    @model_validator(mode="after")
+    def score_within_total(self):
+        if self.score > self.total:
+            raise ValueError("Score cannot be higher than the number of questions.")
+        return self
+
+
+class StudyPrefsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    quiz_length: Optional[Literal[5, 10, 15, 20]] = None
+    daily_goal: Optional[int] = Field(default=None, ge=1, le=100)
+    hide_mastered: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def at_least_one_field(self):
+        sent = self.model_dump(exclude_unset=True)
+        if not sent:
+            raise ValueError("Send at least one field to update.")
+        if any(value is None for value in sent.values()):
+            raise ValueError("Fields cannot be null.")
+        return self

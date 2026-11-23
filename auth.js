@@ -99,7 +99,7 @@
     wrap.style.cssText = "display:flex;align-items:center;gap:12px;";
     wrap.innerHTML = `
       <a href="profile.html" class="nav-item" title="My profile, saved laws and suggestions" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none;"><span class="nav-label">My profile</span><span class="nav-name">${escapeHtml(auth.display_name || auth.username)}</span></a>
-      <a href="settings.html" class="nav-item" title="Settings" aria-label="Settings" style="color: var(--text-muted); font-size: 1rem; text-decoration: none;"><span class="nav-label">Settings</span><span class="nav-icon">&#9881;</span></a>
+      <a href="settings.html" class="nav-item" title="Settings" aria-label="Settings" style="color: var(--text-muted); font-size: 1rem; text-decoration: none;"><span class="nav-label">Settings</span><span class="nav-icon">Settings</span></a>
       ${auth.role === "admin" ? '<a href="admin.html" class="nav-item" style="color: var(--accent-gold); font-size: 0.9rem;"><span class="nav-label">Admin dashboard</span><span class="nav-name">Admin</span></a>' : ""}
     `;
     const out = btn.cloneNode(false);
