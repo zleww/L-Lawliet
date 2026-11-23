@@ -14,7 +14,7 @@
     .table-scroll { overflow-x: auto; }
     .btn-small { background: transparent; color: var(--accent-gold); border: 1px solid var(--accent-gold); border-radius: 4px; padding: 4px 10px; cursor: pointer; margin-right: 6px; }
     .btn-danger { color: #e57373; border-color: #e57373; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
     .form-grid label { display: block; font-size: 0.8rem; color: var(--text-muted); }
     .form-grid .wide { grid-column: 1 / -1; }
     .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); margin: 12px 0 16px; }

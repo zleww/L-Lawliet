@@ -115,7 +115,7 @@
 
       ${engageBar(law, auth)}
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: var(--bg-inset); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; background: var(--bg-inset); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 25px;">
         ${meta("Enacting President", law.enacting_president)}
         ${meta("Total Sections", `${law.total_sections} Sections`)}
         ${meta("Base Minimum Fine", fine, "var(--accent-gold)")}
