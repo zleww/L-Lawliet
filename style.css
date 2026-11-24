@@ -850,8 +850,10 @@ body {
 .law-index-summary { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; min-height: 1.6em; font-variant-numeric: tabular-nums; }
 
 .law-card { cursor: default; display: flex; flex-direction: column; gap: 6px; }
-.law-card.has-guide { cursor: pointer; border-color: color-mix(in srgb, var(--accent-gold) 45%, var(--border-color)); }
-.law-card.has-guide:hover { border-color: var(--accent-gold); }
+.law-card.is-open { cursor: pointer; }
+.law-card.is-open:hover { border-color: var(--accent-gold); }
+.law-card.has-guide { border-color: color-mix(in srgb, var(--accent-gold) 45%, var(--border-color)); }
+.law-card h4 { margin-bottom: 0; font-size: 1rem; }
 .law-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
 .law-card-type {
   background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px;
@@ -889,3 +891,14 @@ body {
   .law-index-types::-webkit-scrollbar { display: none; }
   .type-pill { flex: none; }
 }
+
+/* Law pop-up for a law that has no plain-English guide yet */
+.listed-actions { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; margin: 6px 0 10px; }
+.listed-primary {
+  background: var(--accent-gold); color: #000; font-weight: 700; text-decoration: none;
+  padding: 10px 18px; border-radius: 8px; min-height: 44px; display: inline-flex; align-items: center;
+}
+.listed-primary:hover { background: var(--accent-gold-hover); }
+.listed-secondary { color: var(--accent-gold); font-weight: 600; font-size: 0.9rem; }
+.law-card-stats { color: var(--text-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.law-card-stats:empty { display: none; }

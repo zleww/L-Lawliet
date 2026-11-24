@@ -49,6 +49,11 @@
     document.addEventListener("DOMContentLoaded", () => {
       const { getAuth, apiFetch, errorMessage } = window.LawlietAuth;
       const $ = (id) => document.getElementById(id);
+      // "Ask for a plain-English guide" in a law's pop-up fills in the law for you.
+      const pre = new URLSearchParams(location.search);
+      if (pre.get("ra")) $("ra").value = pre.get("ra").slice(0, 30);
+      if (pre.get("title")) $("title").value = pre.get("title").slice(0, 200);
+      if (/^https:\/\//.test(pre.get("source") || "")) $("source").value = pre.get("source").slice(0, 500);
       if (!getAuth()) { window.location.href = "login.html"; return; }
 
       $("suggestForm").addEventListener("submit", async (ev) => {

@@ -85,7 +85,7 @@
       <span id="pageInfo"></span>
       <button type="button" id="nextPage" class="pager-btn">Older &rarr;</button>
     </nav>
-    <p class="law-index-note">Titles and links come from the LawPhil Project's public archive. Cards with a <strong>Read the guide</strong> link also have a plain-English explanation here.</p>
+    <p class="law-index-note">Titles and links come from the LawPhil Project's public archive. Open any card to rate it, save it or add a note. Cards with a <strong>Read the guide</strong> link also have a plain-English explanation.</p>
   </section>
 
   <!-- Modal Deep Dive View -->
@@ -183,6 +183,13 @@
         ? new Date(iso + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })
         : "";
 
+      function cardStats(law) {
+        const parts = [];
+        if (law.rating_count) parts.push(`★ ${law.rating_avg} (${law.rating_count})`);
+        if (law.note_count) parts.push(`${law.note_count} note${law.note_count === 1 ? "" : "s"}`);
+        return esc(parts.join(" · "));
+      }
+
       async function fetchIndex() {
         const params = new URLSearchParams({ page: indexPage, per_page: PER_PAGE });
         const query = searchInput ? searchInput.value.trim() : "";
@@ -216,15 +223,17 @@
             ? `${n} ${data.total === 1 ? "law matches" : "laws match"} "${query}"`
             : `${n} ${data.total === 1 ? "law" : "laws"}`;
         indexList.innerHTML = data.items.map(law => `
-          <article class="card law-card${law.law_id ? " has-guide" : ""}">
+          <article class="card law-card${law.law_id ? " is-open" : ""}${law.has_guide ? " has-guide" : ""}">
             <div class="law-card-top">
               <span class="badge law-card-type">${esc(TYPE_NAMES[law.law_type] || "Law")}</span>
               <span class="law-card-date">${esc(fmtDate(law.enacted_on) || law.year)}</span>
             </div>
             <h3>${esc(SHORT[law.law_type] || "")} ${esc(law.number)}</h3>
+            ${law.has_guide && law.plain_title ? `<h4>${esc(law.plain_title)}</h4>` : ""}
             <p class="law-card-title">${esc(law.official_title)}</p>
+            <p class="law-card-stats">${cardStats(law)}</p>
             <div class="law-card-actions">
-              ${law.law_id ? `<button type="button" class="law-row-guide" data-law="${esc(law.law_id)}">Read the guide</button>` : ""}
+              ${law.law_id ? `<button type="button" class="law-row-guide" data-law="${esc(law.law_id)}">${law.has_guide ? "Read the guide" : "Rate &amp; discuss"}</button>` : ""}
               <a href="${esc(law.source_url)}" target="_blank" rel="noopener noreferrer">Full text<span class="visually-hidden"> of ${esc(law.label)} (opens in a new tab)</span> &#8599;</a>
             </div>
           </article>`).join("");
@@ -235,7 +244,7 @@
 
       indexList.addEventListener("click", async e => {
         if (e.target.closest("a")) return;
-        const btn = e.target.closest(".law-row-guide") || e.target.closest(".law-card.has-guide")?.querySelector(".law-row-guide");
+        const btn = e.target.closest(".law-row-guide") || e.target.closest(".law-card.is-open")?.querySelector(".law-row-guide");
         if (!btn) return;
         const res = await apiFetch(`/api/v1/laws/${encodeURIComponent(btn.dataset.law)}`);
         if (res.ok) show(await res.json()); else alert(await errorMessage(res));

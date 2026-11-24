@@ -77,30 +77,9 @@
       </div>`;
   }
 
-  function openModal(law, modal, modalBody) {
-    const auth = getAuth();
-    renderModal(law, modal, modalBody);
-    // Logged in: reload the law so the pop-up shows your own state (saved, rating, votes).
-    if (auth && !law._fresh) {
-      apiFetch(`/api/v1/laws/${encodeURIComponent(law.id)}`)
-        .then(res => (res.ok ? res.json() : null))
-        .then(fresh => {
-          if (!fresh || modal.classList.contains("hidden")) return;
-          Object.assign(law, fresh, { _fresh: true });
-          renderModal(law, modal, modalBody);
-        })
-        .catch(err => console.error("Failed to refresh the law:", err));
-    }
-  }
-
-  function renderModal(law, modal, modalBody) {
-    const notes = Array.isArray(law.user_notes) ? law.user_notes : [];
-    const fine = law.min_fine_php ? `₱${Number(law.min_fine_php).toLocaleString()}` : "None / Discretionary";
-    const safeUrl = /^https:\/\//.test(law.source_url || "") ? law.source_url : "#";
-    const auth = getAuth();
-    const reload = () => { law._fresh = false; openModal(law, modal, modalBody); };
-
-    modalBody.innerHTML = `
+  // Top half of the pop-up for a law with a plain-English guide.
+  function guideHeader(law, fine, safeUrl, auth) {
+    return `
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
         <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${e(law.category)} (${e(law.year)})</span>
         <span style="background: var(--chip-bg); color: var(--text-main); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">Status: <strong>${e(law.status)}</strong></span>
@@ -130,8 +109,59 @@
 
       <div class="detail-section" style="margin-bottom: 20px;">
         <h4 style="color: var(--accent-gold); margin-bottom: 5px;">Official Source</h4>
-        <a href="${e(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: underline;">Read the full text in the Official Gazette</a>
+        <a href="${e(safeUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-gold); text-decoration: underline;">Read the full text</a>
       </div>
+`;
+  }
+
+  // Top half of the pop-up for a law from the full list that has no guide yet.
+  function listedHeader(law, safeUrl, auth) {
+    const date = law.enacted_on
+      ? new Date(law.enacted_on + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })
+      : law.year;
+    return `
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px;">
+        <span style="background: rgba(200, 155, 83, 0.15); color: var(--accent-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${e(date)}</span>
+        <span style="background: var(--chip-bg); color: var(--text-muted); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">No plain-English guide yet</span>
+      </div>
+
+      <h2 style="color: var(--accent-gold); margin-bottom: 8px;">${e(law.label || law.ra_number)}</h2>
+      <p style="color: var(--text-main); margin-bottom: 20px; font-size: 0.98rem; line-height: 1.6; overflow-wrap: anywhere;">${e(law.official_title)}</p>
+
+      ${engageBar(law, auth)}
+
+      <div class="listed-actions">
+        <a class="listed-primary" href="${e(safeUrl)}" target="_blank" rel="noopener noreferrer">Read the full text &#8599;</a>
+        <a class="listed-secondary" href="suggest.html?${new URLSearchParams({ ra: law.ra_number, title: (law.official_title || "").slice(0, 200), source: law.source_url || "" })}">Ask for a plain-English guide</a>
+      </div>
+`;
+  }
+
+  function openModal(law, modal, modalBody) {
+    const auth = getAuth();
+    renderModal(law, modal, modalBody);
+    // Logged in: reload the law so the pop-up shows your own state (saved, rating, votes).
+    if (auth && !law._fresh) {
+      apiFetch(`/api/v1/laws/${encodeURIComponent(law.id)}`)
+        .then(res => (res.ok ? res.json() : null))
+        .then(fresh => {
+          if (!fresh || modal.classList.contains("hidden")) return;
+          Object.assign(law, fresh, { _fresh: true });
+          renderModal(law, modal, modalBody);
+        })
+        .catch(err => console.error("Failed to refresh the law:", err));
+    }
+  }
+
+  function renderModal(law, modal, modalBody) {
+    const notes = Array.isArray(law.user_notes) ? law.user_notes : [];
+    const fine = law.min_fine_php ? `₱${Number(law.min_fine_php).toLocaleString()}` : "None / Discretionary";
+    const safeUrl = /^https:\/\//.test(law.source_url || "") ? law.source_url : "#";
+    const auth = getAuth();
+    const reload = () => { law._fresh = false; openModal(law, modal, modalBody); };
+
+    modalBody.innerHTML = `
+      ${law.has_guide === false ? listedHeader(law, safeUrl, auth) : guideHeader(law, fine, safeUrl, auth)}
 
       <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 25px 0;">
 

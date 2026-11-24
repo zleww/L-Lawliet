@@ -47,11 +47,18 @@ LAW_SELECT = """
                      FROM comments c WHERE c.law_id = l.id) n
            ), '[]'::json) AS user_notes,
            (SELECT ROUND(AVG(r.rating), 1)::float FROM law_ratings r WHERE r.law_id = l.id) AS rating_avg,
-           (SELECT COUNT(*) FROM law_ratings r WHERE r.law_id = l.id) AS rating_count
+           (SELECT COUNT(*) FROM law_ratings r WHERE r.law_id = l.id) AS rating_count,
+           (SELECT i.label FROM law_index i WHERE i.law_id = l.id ORDER BY i.id LIMIT 1) AS label,
+           (SELECT i.enacted_on FROM law_index i WHERE i.law_id = l.id ORDER BY i.id LIMIT 1) AS enacted_on
     FROM laws l
 """
 
-PREVIEW_IDS = f"SELECT id FROM laws ORDER BY id LIMIT {GUEST_PREVIEW_SIZE}"
+PREVIEW_IDS = f"SELECT id FROM laws WHERE has_guide ORDER BY id LIMIT {GUEST_PREVIEW_SIZE}"
+
+# Laws without a plain-English guide (has_guide = false) have no plain title or category.
+# Lists that show any law use these, so pages written for guides still get text.
+SHOWN_TITLE = "COALESCE(l.plain_title, left(l.official_title, 140))"
+SHOWN_CATEGORY = "COALESCE(l.category, 'Full list')"
 
 PROFILE_COLUMNS = ("display_name", "bio", "theme", "accent")
 
@@ -147,7 +154,7 @@ def list_laws(conn, *, guest: bool, category=None, search=None):
     Guests are limited to the preview set inside the query itself.
     Returns (laws, total) where total is the number of laws in the whole table.
     """
-    where, params = [], []
+    where, params = ["l.has_guide"], []
     if guest:
         where.append(f"l.id IN ({PREVIEW_IDS})")
     if category:
@@ -163,7 +170,7 @@ def list_laws(conn, *, guest: bool, category=None, search=None):
     with conn.cursor() as cur:
         cur.execute(sql, params)
         laws = cur.fetchall()
-        cur.execute("SELECT COUNT(*) AS n FROM laws")
+        cur.execute("SELECT COUNT(*) AS n FROM laws WHERE has_guide")
         total = cur.fetchone()["n"]
     return laws, total
 
@@ -195,14 +202,19 @@ def get_law(conn, law_id: int, viewer=None):
 
 
 def is_in_preview(conn, law_id: int) -> bool:
+    """Guests may open the preview guides and every law that has no guide yet."""
     with conn.cursor() as cur:
-        cur.execute(f"SELECT %s IN ({PREVIEW_IDS}) AS inside", (law_id,))
+        cur.execute(
+            f"SELECT %s IN ({PREVIEW_IDS}) OR EXISTS "
+            "(SELECT 1 FROM laws WHERE id = %s AND NOT has_guide) AS inside",
+            (law_id, law_id),
+        )
         return cur.fetchone()["inside"]
 
 
 def stats(conn):
     with conn.cursor() as cur:
-        cur.execute("SELECT category, COUNT(*) AS n FROM laws GROUP BY category")
+        cur.execute("SELECT category, COUNT(*) AS n FROM laws WHERE has_guide GROUP BY category")
         by_category = {row["category"]: row["n"] for row in cur.fetchall()}
         cur.execute("SELECT COUNT(*) AS n FROM law_index")
         listed = cur.fetchone()["n"]
@@ -230,7 +242,11 @@ def _law_type_of(word: Optional[str]) -> Optional[str]:
 
 INDEX_SELECT = (
     "SELECT i.id, i.law_type, i.number, i.label, i.enacted_on, i.year, i.official_title, "
-    "i.source_url, i.law_id FROM law_index i"
+    "i.source_url, i.law_id, COALESCE(g.has_guide, false) AS has_guide, g.plain_title, "
+    "(SELECT ROUND(AVG(r.rating), 1)::float FROM law_ratings r WHERE r.law_id = i.law_id) AS rating_avg, "
+    "(SELECT COUNT(*) FROM law_ratings r WHERE r.law_id = i.law_id) AS rating_count, "
+    "(SELECT COUNT(*) FROM comments c WHERE c.law_id = i.law_id) AS note_count "
+    "FROM law_index i LEFT JOIN laws g ON g.id = i.law_id"
 )
 INDEX_ORDER = "i.year DESC, NULLIF(regexp_replace(i.number, '\\D', '', 'g'), '')::int DESC"
 
@@ -278,17 +294,26 @@ def list_law_index(conn, *, q=None, law_type=None, year=None, page=1, per_page=2
 # Laws: write (each commits before returning)
 # ----------------------------------------------------------------------
 def create_law(conn, data: dict, actor: dict):
+    """A new guide. If the law is already in the full list without a guide, that row becomes
+    the guide, so its notes, ratings and saves stay. UniqueViolation if it already has one."""
     cols = [c for c in LAW_COLUMNS if c in data]
-    sql = (
-        f"INSERT INTO laws ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))}) "
-        "RETURNING id"
-    )
     with conn.cursor() as cur:
         act_as(cur, actor)
-        cur.execute(sql, [data[c] for c in cols])
-        new_id = cur.fetchone()["id"]
+        cur.execute(
+            f"UPDATE laws SET {', '.join(f'{c} = %s' for c in cols)}, has_guide = true, "
+            "updated_at = now() WHERE upper(ra_number) = upper(%s) AND NOT has_guide RETURNING id",
+            [data[c] for c in cols] + [data["ra_number"]],
+        )
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                f"INSERT INTO laws ({', '.join(cols)}) VALUES ({', '.join(['%s'] * len(cols))}) "
+                "RETURNING id",
+                [data[c] for c in cols],
+            )
+            row = cur.fetchone()
     conn.commit()
-    return get_law(conn, new_id)
+    return get_law(conn, row["id"])
 
 
 def update_law(conn, law_id: int, changes: dict, actor: dict):
@@ -301,15 +326,35 @@ def update_law(conn, law_id: int, changes: dict, actor: dict):
             [changes[c] for c in cols] + [law_id],
         )
         row = cur.fetchone()
+        if row:  # a listed law becomes a guide once every plain-English field is filled in
+            cur.execute(
+                "UPDATE laws SET has_guide = true WHERE id = %s AND NOT has_guide AND "
+                + " AND ".join(f"{c} IS NOT NULL" for c in LAW_COLUMNS),
+                (law_id,),
+            )
     conn.commit()
     return get_law(conn, law_id) if row else None
 
 
+GUIDE_ONLY_COLUMNS = [c for c in LAW_COLUMNS if c not in ("ra_number", "official_title", "year", "source_url")]
+
+
 def delete_law(conn, law_id: int, actor: dict) -> bool:
+    """Deleting a guide for a law that is in the full list only removes the guide: the law goes
+    back to the list with its official title and link, and keeps its notes and ratings."""
     with conn.cursor() as cur:
         act_as(cur, actor)
-        cur.execute("DELETE FROM laws WHERE id = %s RETURNING id", (law_id,))
+        cur.execute(
+            "UPDATE laws l SET " + ", ".join(f"{c} = NULL" for c in GUIDE_ONLY_COLUMNS)
+            + ", has_guide = false, official_title = i.official_title, source_url = i.source_url, "
+            "updated_at = now() FROM law_index i WHERE i.law_id = l.id AND l.id = %s AND l.has_guide "
+            "RETURNING l.id",
+            (law_id,),
+        )
         row = cur.fetchone()
+        if row is None:
+            cur.execute("DELETE FROM laws WHERE id = %s RETURNING id", (law_id,))
+            row = cur.fetchone()
     conn.commit()
     return row is not None
 
@@ -625,7 +670,8 @@ def list_saved(conn, actor: dict):
     with conn.cursor() as cur:
         act_as(cur, actor)
         cur.execute(
-            "SELECT l.id, l.ra_number, l.plain_title, l.category, l.year, s.saved_at "
+            f"SELECT l.id, l.ra_number, {SHOWN_TITLE} AS plain_title, {SHOWN_CATEGORY} AS category, "
+            "l.year, l.has_guide, s.saved_at "
             "FROM saved_laws s JOIN laws l ON l.id = s.law_id "
             "WHERE s.user_id = %s ORDER BY s.saved_at DESC",
             (actor["id"],),
@@ -795,7 +841,7 @@ SUGGESTION_COLUMNS = (
 
 def law_id_by_ra(conn, ra_number: str):
     with conn.cursor() as cur:
-        cur.execute("SELECT id FROM laws WHERE upper(ra_number) = upper(%s)", (ra_number,))
+        cur.execute("SELECT id FROM laws WHERE upper(ra_number) = upper(%s) AND has_guide", (ra_number,))
         row = cur.fetchone()
         return row["id"] if row else None
 
@@ -880,7 +926,7 @@ def get_profile(conn, user_id: int):
             return None
         cur.execute(
             "SELECT c.id, c.comment, c.created_at, c.updated_at AS edited_at, "
-            "       l.id AS law_id, l.ra_number, l.plain_title, "
+            f"       l.id AS law_id, l.ra_number, {SHOWN_TITLE} AS plain_title, "
             "       (SELECT COUNT(*) FROM comment_votes v WHERE v.comment_id = c.id) AS helpful_count "
             "FROM comments c JOIN laws l ON l.id = c.law_id "
             "WHERE c.user_id = %s ORDER BY c.created_at DESC",
@@ -1090,6 +1136,7 @@ def study_summary(conn, actor: dict):
                    COUNT(p.law_id) FILTER (WHERE p.status = 'review')   AS laws_review
             FROM laws l
             LEFT JOIN law_progress p ON p.law_id = l.id AND p.user_id = %s
+            WHERE l.has_guide
             GROUP BY l.category ORDER BY l.category
             """,
             (uid,),
@@ -1129,7 +1176,8 @@ def study_summary(conn, actor: dict):
         cur.execute(
             """
             (SELECT 'progress' AS kind, p.law_id AS ref_id, p.updated_at AS at, p.status AS detail,
-                    l.ra_number AS title, l.plain_title AS subtitle, l.category
+                    l.ra_number AS title, COALESCE(l.plain_title, left(l.official_title, 140)) AS subtitle,
+                    COALESCE(l.category, 'Full list') AS category
              FROM law_progress p JOIN laws l ON l.id = p.law_id WHERE p.user_id = %s
              ORDER BY p.updated_at DESC LIMIT 8)
             UNION ALL
@@ -1164,7 +1212,7 @@ def admin_overview(conn, actor: dict):
                    (SELECT COUNT(*) FROM users WHERE role = 'admin')                  AS admins,
                    (SELECT COUNT(*) FROM users
                      WHERE created_at >= now() - interval '7 days')                   AS new_this_week,
-                   (SELECT COUNT(*) FROM laws)                                        AS laws,
+                   (SELECT COUNT(*) FROM laws WHERE has_guide)                        AS laws,
                    (SELECT COUNT(*) FROM comments)                                    AS comments,
                    (SELECT COUNT(*) FROM flashcards)                                  AS flashcards,
                    (SELECT COUNT(*) FROM law_progress WHERE status = 'mastered')      AS laws_mastered,
