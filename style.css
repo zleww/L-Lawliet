@@ -665,7 +665,8 @@ body {
 .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0 6px; }
 .stat-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; min-width: 120px; }
 .stat-box strong { display: block; font-size: 1.3rem; color: var(--accent-gold); }
-.stat-box span { color: var(--text-muted); font-size: 0.8rem; }
+.stat-box span { color: var(--text-muted); font-size: 0.8rem; display: block; }
+.stat-box .stat-sub { font-size: 0.75rem; opacity: 0.8; }
 .list-card {
   background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;
   padding: 12px 14px; margin-bottom: 10px;
@@ -832,11 +833,6 @@ body {
 }
 .view-tab:hover { color: var(--text-main); }
 .view-tab.is-active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
-.view-tab-count {
-  font-size: 0.75rem; font-weight: 600; color: var(--accent-gold);
-  font-variant-numeric: tabular-nums;
-}
-.view-tab-count:empty { display: none; }
 
 .law-index { max-width: 1400px; margin: 0 auto 80px; padding: 0 4vw; }
 .law-index-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
@@ -902,3 +898,56 @@ body {
 .listed-secondary { color: var(--accent-gold); font-weight: 600; font-size: 0.9rem; }
 .law-card-stats { color: var(--text-muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .law-card-stats:empty { display: none; }
+
+/* --- Signed-in account buttons in the navbar: settings, profile (avatar), sign out --- */
+.nav-auth { display: flex; align-items: center; gap: 8px; }
+.nav-btn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px;
+  padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-color);
+  background: var(--bg-card); color: var(--text-main); font-size: 0.9rem; font-weight: 600;
+  text-decoration: none; transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+.nav-btn:hover, .nav-btn[aria-current="page"] { border-color: var(--accent-gold); color: var(--accent-gold); }
+.nav-btn:focus-visible, .nav-signout:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+.nav-icon-btn { width: 40px; padding: 0; justify-content: center; }
+.nav-icon-btn .nav-btn-text { display: none; }
+.nav-admin { color: var(--accent-gold); }
+.nav-profile { padding: 0 14px 0 4px; max-width: 220px; }
+.nav-profile .nav-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-avatar {
+  flex: none; width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-gold); color: #000; font-weight: 700; font-size: 0.9rem;
+}
+.nav-svg { flex: none; }
+.btn-signin.nav-signout {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px;
+  background: transparent; color: var(--text-muted); border: 1px solid var(--border-color);
+  border-radius: 999px; padding: 0 14px;
+}
+.btn-signin.nav-signout:hover { color: var(--text-main); border-color: var(--text-muted); background: transparent; }
+
+/* Phone menu: each account button becomes a full-width row with its icon and label */
+@media (max-width: 900px) {
+  .nav-open .nav-auth .nav-btn {
+    width: 100%; max-width: none; min-height: 52px; border-radius: 0; border: none;
+    border-bottom: 1px solid var(--border-color); background: none; padding: 0 4px;
+    justify-content: flex-start; gap: 12px; font-size: 1rem !important;
+  }
+  .nav-open .nav-auth .nav-icon-btn .nav-btn-text,
+  .nav-open .nav-auth .nav-btn .nav-label { display: inline; color: inherit; font-size: inherit; }
+  .nav-open .nav-auth .nav-avatar { width: 28px; height: 28px; font-size: 0.85rem; }
+  .nav-open .nav-auth .nav-icon-btn .nav-svg, .nav-open .nav-auth .nav-admin .nav-svg { width: 28px; }
+  .nav-open .nav-auth .btn-signin.nav-signout {
+    display: inline-flex !important; width: 100%; justify-content: center; margin-top: 16px; min-height: 48px; border-radius: 8px;
+  }
+  .nav-open .nav-auth { order: 3; }
+}
+.nav-links a, .btn-signin.nav-signout, .nav-btn { white-space: nowrap; }
+/* Medium screens: the profile button shows just the avatar so the bar stays on one line */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .nav-profile { padding: 0 4px; }
+  .nav-profile .nav-btn-text { display: none; }
+  .nav-admin .nav-btn-text { display: none; }
+  .nav-admin { width: 40px; padding: 0; justify-content: center; }
+}

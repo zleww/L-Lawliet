@@ -460,6 +460,22 @@ def get_laws(
 
 
 # ==========================================================
+# RANDOM DRAW FOR THE GAMES (Public): laws from the full list
+# ==========================================================
+@app.get("/api/v1/laws/draw", tags=["Laws"])
+def draw_laws(
+    count: int = Query(default=20, ge=1, le=50),
+    type: Optional[Literal["act", "ca", "ra", "pd", "bp"]] = None,
+    conn=Depends(db.get_db),
+):
+    """A new random set of laws without a plain-English guide on every call: number, label,
+    official title, year, date and full-text link. JurisCards and the Arena use it so a game
+    never has to download all ~19,600 laws."""
+    laws = db.draw_laws(conn, count=count, law_type=type)
+    return {"count": len(laws), "laws": laws}
+
+
+# ==========================================================
 # GET ONE LAW (guest: first 10 only)
 # ==========================================================
 @app.get("/api/v1/laws/{law_id}", tags=["Laws"])

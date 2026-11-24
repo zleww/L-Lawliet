@@ -49,8 +49,9 @@
 
   <main class="admin-wrap">
     <h1 style="font-family: 'Playfair Display', serif;">Admin <span class="gold-text">dashboard</span></h1>
+    <div class="stat-row" id="overview" aria-live="polite"></div>
     <div class="admin-tabs" role="tablist">
-      <button type="button" role="tab" data-tab="laws" aria-selected="true">Laws</button>
+      <button type="button" role="tab" data-tab="laws" aria-selected="true">Guides</button>
       <button type="button" role="tab" data-tab="suggestions" aria-selected="false">Suggestions<span class="tab-count" id="countSuggestions"></span></button>
       <button type="button" role="tab" data-tab="reports" aria-selected="false">Reports<span class="tab-count" id="countReports"></span></button>
       <button type="button" role="tab" data-tab="users" aria-selected="false">Users</button>
@@ -59,9 +60,10 @@
 
     <section id="panel-laws" class="admin-panel">
     <div class="panel-head">
-      <h2>Laws</h2>
-      <button id="addBtn" class="btn-gold">+ Add law</button>
+      <h2>Plain-English guides</h2>
+      <button id="addBtn" class="btn-gold">+ Add guide</button>
     </div>
+    <p class="muted-small" style="margin-bottom: 12px;">Every law in the full list can be opened, rated and noted. Adding a guide for one (same number, e.g. "PD 1606") turns it into a guide and keeps its notes and ratings.</p>
 
     <form id="lawForm" class="comment-form hidden" style="margin-bottom: 24px;">
       <h3 id="formTitle" style="margin-bottom: 12px;">Add law</h3>
@@ -75,7 +77,7 @@
 
     <div class="table-scroll">
       <table class="admin-table">
-        <thead><tr><th>ID</th><th>RA number</th><th>Plain title</th><th>Category</th><th>Year</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>Number</th><th>Plain title</th><th>Category</th><th>Year</th><th>Status</th><th>Updated</th><th></th></tr></thead>
         <tbody id="lawRows"><tr><td colspan="8">Loading…</td></tr></tbody>
       </table>
     </div>
@@ -130,7 +132,7 @@
 
       const CATEGORIES = ["Technology & Crime", "Finance & Taxes", "Governance & Business", "Social & Welfare", "Environment", "Education & Civil Rights"];
       const FIELDS = [
-        ["ra_number", "RA number (e.g. RA 99999)", "text", 20],
+        ["ra_number", "Law number (e.g. RA 10175, PD 1606, BP 22)", "text", 20],
         ["year", "Year enacted", "number"],
         ["official_title", "Official title", "text", 300, "wide"],
         ["plain_title", "Plain title", "text", 200, "wide"],
@@ -178,7 +180,7 @@
 
       function openForm(law) {
         editing = law;
-        document.getElementById("formTitle").textContent = law ? `Edit ${law.ra_number}` : "Add law";
+        document.getElementById("formTitle").textContent = law ? `Edit ${law.ra_number}` : "Add guide";
         FIELDS.forEach(([name, , type, opt]) => {
           form.elements[name].value = law ? law[name] : (type === "select" ? opt[0] : "");
         });
@@ -212,10 +214,15 @@
         if (editId) openForm(laws.find(l => String(l.id) === editId));
         if (deleteId) {
           const law = laws.find(l => String(l.id) === deleteId);
-          if (!confirm(`Delete ${law.ra_number} and all its community notes? This cannot be undone.`)) return;
+          const question = law.label
+            ? `Remove the guide for ${law.ra_number}? The law stays in the full list with its notes and ratings.`
+            : `Delete ${law.ra_number} and all its community notes? It is not in the full list, so this cannot be undone.`;
+          if (!confirm(question)) return;
           const res = await apiFetch(`/api/v1/laws/${encodeURIComponent(deleteId)}`, { method: "DELETE" });
-          pageMsg.textContent = res.status === 204 ? `Deleted ${law.ra_number}.` : await errorMessage(res);
-          load();
+          pageMsg.textContent = res.status === 204
+            ? (law.label ? `Removed the guide for ${law.ra_number}; it is back in the full list.` : `Deleted ${law.ra_number}.`)
+            : await errorMessage(res);
+          load(); loadOverview();
         }
       });
 
@@ -246,8 +253,26 @@
           loadSuggestions();
         }
         form.classList.add("hidden");
-        load();
+        load(); loadOverview();
       });
+
+      // ---------- Overview numbers ----------
+      async function loadOverview() {
+        const res = await apiFetch("/api/v1/admin/overview");
+        if (!res.ok) return;
+        const o = await res.json();
+        const n = v => Number(v || 0).toLocaleString("en-PH");
+        const boxes = [
+          ["Accounts", n(o.users), `${n(o.new_this_week)} new this week`],
+          ["Guides", n(o.laws), "plain-English"],
+          ["Laws in the full list", n(o.listed), "open to everyone"],
+          ["Community notes", n(o.comments), `${n(o.ratings)} ratings`],
+          ["Quiz attempts", n(o.quiz_attempts), o.quiz_average_pct != null ? `${o.quiz_average_pct}% average` : "none yet"],
+        ];
+        document.getElementById("overview").innerHTML = boxes.map(([label, value, sub]) =>
+          `<div class="stat-box"><strong>${e(value)}</strong><span>${e(label)}</span><span class="stat-sub">${e(sub)}</span></div>`).join("");
+      }
+      loadOverview();
 
       // ---------- Tabs ----------
       const tabs = document.querySelectorAll(".admin-tabs [data-tab]");

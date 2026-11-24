@@ -251,6 +251,52 @@ INDEX_SELECT = (
 INDEX_ORDER = "i.year DESC, NULLIF(regexp_replace(i.number, '\\D', '', 'g'), '')::int DESC"
 
 
+# Game draws use laws of national interest (rights, crimes, taxes, health, work, ...) and leave
+# out local acts and small amendments (a road in one town, "amending section 3 of ..."), which
+# make poor questions. Since 1946 only. About 800 laws qualify; the full list still shows every law.
+_GAME_TOPICS = [
+    "%penaliz%", "%prohibit%", "%protect%", "%regulat%", "% code%", "%rights%", "%defining%",
+    "%crime%", "%punish%", "%welfare%", "% tax%", "%labor%", "%consumer%", "%environment%",
+    "%safety%", "%health%", "%education%", "%women%", "%children%", "%violence%", "%drug%",
+    "%election%", "%corrupt%", "%privacy%", "%worker%", "%employment%", "%insurance%",
+    "%banking%", "%benefits%", "%poverty%", "%disaster%", "%climate%",
+]
+_GAME_SKIP = [
+    "%municipal%", "%provinc%", "%city of%", "%barangay%", "%department of mindanao%",
+    "%appropriating%", "%legislative district%", "%hospital%", "% road%", "%bridge%",
+    "%court session%", "%citizenship%", "%franchise%", "%school%", "%renaming%", "%into a%city%",
+    "%sitio%", "%island of%", "%amend% section%", "%amend% paragraph%", "%effectivity%",
+    "%harbor%", "%numbered%", "%article%of%", "%further amending%", "%amending part%",
+    "%reorganization plan%",
+]
+
+
+def draw_laws(conn, *, count=20, law_type=None):
+    """A fresh random draw of laws from the full list that have no guide yet, for the games
+    (JurisCards flashcards, the Arena bonus round), from the ~800 laws of national interest since 1946."""
+    where = [
+        "NOT l.has_guide", "l.year >= 1946", "char_length(l.official_title) BETWEEN 40 AND 400",
+        "l.official_title ILIKE ANY (%s)", "NOT (l.official_title ILIKE ANY (%s))",
+    ]
+    params = [_GAME_TOPICS, _GAME_SKIP]
+    if law_type:
+        where.append("i.law_type = %s")
+        params.append(law_type)
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT l.id, l.ra_number, i.label, i.law_type, l.official_title, l.year, i.enacted_on, "
+            "l.source_url, l.has_guide "
+            "FROM laws l JOIN law_index i ON i.law_id = l.id WHERE " + " AND ".join(where)
+            + " ORDER BY random() LIMIT %s",
+            params + [count],
+        )
+        rows = cur.fetchall()
+    for r in rows:
+        if r["enacted_on"] is not None:
+            r["enacted_on"] = r["enacted_on"].isoformat()
+    return rows
+
+
 def list_law_index(conn, *, q=None, law_type=None, year=None, page=1, per_page=25):
     """One page of the full statute list, newest first, or best match first when searching.
     A query that is just a law number ("RA 10175", "10175") matches that number exactly."""
@@ -312,6 +358,7 @@ def create_law(conn, data: dict, actor: dict):
                 [data[c] for c in cols],
             )
             row = cur.fetchone()
+        _sync_common_name(cur, row["id"])
     conn.commit()
     return get_law(conn, row["id"])
 
@@ -332,8 +379,19 @@ def update_law(conn, law_id: int, changes: dict, actor: dict):
                 + " AND ".join(f"{c} IS NOT NULL" for c in LAW_COLUMNS),
                 (law_id,),
             )
+            _sync_common_name(cur, law_id)
     conn.commit()
     return get_law(conn, law_id) if row else None
+
+
+def _sync_common_name(cur, law_id: int):
+    """Copy a guide's titles into the full list so a search for its everyday name finds it."""
+    cur.execute(
+        "UPDATE law_index i SET common_name = CASE WHEN l.has_guide "
+        "THEN l.official_title || ' / ' || l.plain_title END "
+        "FROM laws l WHERE l.id = %s AND i.law_id = l.id",
+        (law_id,),
+    )
 
 
 GUIDE_ONLY_COLUMNS = [c for c in LAW_COLUMNS if c not in ("ra_number", "official_title", "year", "source_url")]
@@ -352,7 +410,9 @@ def delete_law(conn, law_id: int, actor: dict) -> bool:
             (law_id,),
         )
         row = cur.fetchone()
-        if row is None:
+        if row is not None:
+            _sync_common_name(cur, law_id)  # back to the full list: clear the guide's name
+        else:
             cur.execute("DELETE FROM laws WHERE id = %s RETURNING id", (law_id,))
             row = cur.fetchone()
     conn.commit()
@@ -1213,6 +1273,8 @@ def admin_overview(conn, actor: dict):
                    (SELECT COUNT(*) FROM users
                      WHERE created_at >= now() - interval '7 days')                   AS new_this_week,
                    (SELECT COUNT(*) FROM laws WHERE has_guide)                        AS laws,
+                   (SELECT COUNT(*) FROM law_index)                                   AS listed,
+                   (SELECT COUNT(*) FROM law_ratings)                                 AS ratings,
                    (SELECT COUNT(*) FROM comments)                                    AS comments,
                    (SELECT COUNT(*) FROM flashcards)                                  AS flashcards,
                    (SELECT COUNT(*) FROM law_progress WHERE status = 'mastered')      AS laws_mastered,

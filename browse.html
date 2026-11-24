@@ -45,7 +45,7 @@
   <!-- Two views: the plain-English guides, and the full list of every law -->
   <div class="view-tabs" role="tablist" aria-label="Which laws to show">
     <button type="button" role="tab" id="tabGuides" class="view-tab is-active" aria-selected="true" aria-controls="guidesView" data-view="guides">Plain-English guides</button>
-    <button type="button" role="tab" id="tabAll" class="view-tab" aria-selected="false" aria-controls="allView" data-view="all" tabindex="-1">Full list <span id="listedCount" class="view-tab-count"></span></button>
+    <button type="button" role="tab" id="tabAll" class="view-tab" aria-selected="false" aria-controls="allView" data-view="all" tabindex="-1">Full list</button>
   </div>
 
   <div id="guidesView" role="tabpanel" aria-labelledby="tabGuides">
@@ -221,7 +221,7 @@
           ? `No laws match${query ? ` "${query}"` : ""}.`
           : query
             ? `${n} ${data.total === 1 ? "law matches" : "laws match"} "${query}"`
-            : `${n} ${data.total === 1 ? "law" : "laws"}`;
+            : "Newest first";
         indexList.innerHTML = data.items.map(law => `
           <article class="card law-card${law.law_id ? " is-open" : ""}${law.has_guide ? " has-guide" : ""}">
             <div class="law-card-top">
@@ -290,13 +290,6 @@
         e.preventDefault();
         setView(view === "guides" ? "all" : "guides", { focus: true });
       });
-
-      apiFetch("/api/v1/stats")
-        .then(res => (res.ok ? res.json() : null))
-        .then(data => {
-          if (data && data.listed) document.getElementById("listedCount").textContent = data.listed.toLocaleString("en-PH");
-        })
-        .catch(() => {});
 
       const refresh = () => {
         if (view === "all") { indexPage = 1; fetchIndex(); } else fetchLaws();

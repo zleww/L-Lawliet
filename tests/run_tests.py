@@ -46,7 +46,7 @@ def sql(q, p=()):
 
 
 def nrows():
-    return sql("SELECT COUNT(*) FROM laws")[0][0]
+    return sql("SELECT COUNT(*) FROM laws WHERE has_guide")[0][0]
 
 
 def check(tid, desc, ok, actual):
@@ -119,12 +119,12 @@ try:
     check("V-06", "Malformed JSON -> 422, no stack trace", r.status_code == 422 and "Traceback" not in r.text, f"{r.status_code}, {r.json()['detail'][0]['type']}")
     r = c.post("/api/v1/laws", json=LAW, headers=A)
     check("V-07", "Duplicate RA number -> 409", r.status_code == 409 and nrows() == n0, f"{r.status_code}, {r.json()['detail']}")
-    r = c.get("/api/v1/laws/9999", headers=U)
-    check("V-08", "Law 9999 -> 404", r.status_code == 404, f"{r.status_code}, {r.json()['detail']}")
+    r = c.get("/api/v1/laws/99999999", headers=U)
+    check("V-08", "Law 99999999 -> 404", r.status_code == 404, f"{r.status_code}, {r.json()['detail']}")
     r = c.get("/api/v1/laws/abc")
     check("V-09", "ID 'abc' -> 422", r.status_code == 422, f"{r.status_code}, {r.json()['detail'][0]['type']}")
     c0 = sql("SELECT COUNT(*) FROM comments")[0][0]
-    r = c.post("/api/v1/laws/9999/comments", json={"user_name": "x", "comment": "y"}, headers=U)
+    r = c.post("/api/v1/laws/99999999/comments", json={"user_name": "x", "comment": "y"}, headers=U)
     check("V-10", "Comment on missing law -> 404, no row", r.status_code == 404 and sql("SELECT COUNT(*) FROM comments")[0][0] == c0,
           f"{r.status_code}, {r.json()['detail']}")
 
@@ -152,7 +152,7 @@ try:
     g = [l["id"] for l in c.get("/api/v1/laws/search?q=8353").json()["results"]]
     f = [l["id"] for l in c.get("/api/v1/laws/search?q=8353", headers=U).json()["results"]]
     check("S-08", "Guest search stays in first 10", g == [] and f != [], f"guest {g}, user {f}")
-    texts = ra.text + c.get("/api/v1/laws", headers=U).text + c.get("/api/v1/laws/9999", headers=U).text
+    texts = ra.text + c.get("/api/v1/laws", headers=U).text + c.get("/api/v1/laws/99999999", headers=U).text
     check("S-09", "No secrets in responses", not any(s in texts for s in ("password_hash", "$2b$", "neon.tech", "Traceback")),
           "no hash, host, SQL or stack trace")
 

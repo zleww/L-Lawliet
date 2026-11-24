@@ -74,6 +74,16 @@ check("LI-11", "no match -> 200 with total 0", s == 200 and b["total"] == 0 and 
 s, b = get("/api/v1/stats")
 check("LI-12", "stats include the listed count", s == 200 and b.get("listed", 0) > 15000, f"{s} {b}")
 
+s, b = get("/api/v1/laws/draw", count=10)
+s2, b2 = get("/api/v1/laws/draw", count=10)
+ids, ids2 = {l["id"] for l in b["laws"]}, {l["id"] for l in b2["laws"]}
+check("LI-13", "game draw: 10 laws without a guide, since 1946, and a new set each call",
+      s == 200 and len(ids) == 10 and all(not l["has_guide"] and l["year"] >= 1946 for l in b["laws"]) and ids != ids2,
+      f"{s} {s2}")
+
+s, b = get("/api/v1/laws/draw", count=51)
+check("LI-14", "game draw above 50 -> 422", s == 422, f"{s}")
+
 passed = sum(results)
 print(f"\n{passed}/{len(results)} passed")
 sys.exit(0 if passed == len(results) else 1)

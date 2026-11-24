@@ -351,11 +351,11 @@
     });
   }
 
-  // Guest notice, e.g. "Guest view: you can read the first 10 of 30 laws. Log in to see all."
+  // Guest notice: guests read 10 of the plain-English guides; the full list is open to all.
   function accessBanner(data) {
     if (data.access !== "guest") return "";
     return `<p style="grid-column: 1/-1; background: rgba(200,155,83,0.12); border: 1px solid var(--accent-gold); color: var(--text-main); padding: 12px 16px; border-radius: 8px;">
-      Guest view: you can read the first ${e(data.guest_limit)} of ${e(data.total)} laws. <a href="login.html" style="color: var(--accent-gold); font-weight: 600;">Log in to see all.</a>
+      Guest view: you can read ${e(data.guest_limit)} of the ${e(data.total)} plain-English guides. Every law in the <a href="browse.html?view=all" style="color: var(--accent-gold); font-weight: 600;">full list</a> is open to everyone. <a href="login.html" style="color: var(--accent-gold); font-weight: 600;">Log in to read every guide.</a>
     </p>`;
   }
 
