@@ -83,3 +83,9 @@ git add -A
 git commit -m "describe the change"
 git push origin main
 ```
+
+##  Database Diagram (ERD)
+
+One Neon PostgreSQL database serves L-Lawliet, JurisCards and JurisCards Arena: 16 tables and 23 foreign keys, with Row-Level Security on every table.
+
+![L-Lawliet database ERD](report-screenshots/ERD%20-%20L-Lawliet%20database%20(updated%202026-11-24).png)
