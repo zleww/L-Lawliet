@@ -88,10 +88,10 @@ s, b = call("POST", "/api/v1/auth/login", {"username": alice.upper(), "password"
 check("A-06", "login ignores username letter case", s == 200 and b["user"]["username"] == alice, f"{s} {b}")
 
 register(locky)
-codes = [call("POST", "/api/v1/auth/login", {"username": locky, "password": "WrongPass1"})[0] for _ in range(5)]
+codes = [call("POST", "/api/v1/auth/login", {"username": locky, "password": "WrongPass1"})[0] for _ in range(10)]
 s, b = call("POST", "/api/v1/auth/login", {"username": locky, "password": PASSWORD})
-check("A-07", "5 wrong passwords lock the account (correct one then -> 429)",
-      codes == [401] * 5 and s == 429, f"{codes} then {s}")
+check("A-07", "10 wrong passwords lock the account (correct one then -> 429)",
+      codes == [401] * 10 and s == 429, f"{codes} then {s}")
 
 s, b = call("POST", "/api/v1/auth/login", {"username": alice, "password": "x" * 100})
 check("A-08", "password over 72 bytes -> 401, not 500", s == 401, f"{s} {b}")

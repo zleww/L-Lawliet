@@ -69,7 +69,7 @@
           if (!res.ok) { $("formError").textContent = await errorMessage(res); return; }
           const saved = await res.json();
           $("suggestForm").reset();
-          $("formOk").innerHTML = `Sent! ${saved.ra_number} is waiting for an admin. Track it on <a href="profile.html" style="color: var(--accent-gold);">your profile</a>.`;
+          $("formOk").innerHTML = `Sent! ${window.LawlietAuth.escapeHtml(saved.ra_number)} is waiting for an admin. Track it on <a href="profile.html" style="color: var(--accent-gold);">your profile</a>.`;
         } catch (err) {
           console.error(err);
           $("formError").textContent = "Could not reach the server. Please try again.";

@@ -185,7 +185,7 @@ def register(payload: RegisterRequest, request: Request, conn=Depends(db.get_db)
 
 
 def password_login(conn, username: str, password: str) -> dict:
-    """Shared by the JSON login and Swagger's Authorize form. Lockout after 5 wrong passwords."""
+    """Shared by the JSON login and Swagger's Authorize form. Lockout after 10 wrong passwords."""
     found = db.get_user_by_username(conn, username)
     if found and found["is_locked"]:
         raise HTTPException(
@@ -303,7 +303,8 @@ def _deliver(to: str, message: tuple) -> None:
 def send_verification_link(conn, request: Request, account: dict, email: str) -> None:
     if not mail.mail_configured():
         raise HTTPException(status_code=503, detail="Email is not set up on this server yet.")
-    if db.recent_link_count(conn, account["id"], "verify_email") >= db.MAX_LINKS_PER_HOUR:
+    if (db.recent_link_count(conn, account["id"], "verify_email") >= db.MAX_LINKS_PER_HOUR
+            or db.recent_email_link_count(conn, email, "verify_email") >= db.MAX_LINKS_PER_EMAIL_HOUR):
         raise HTTPException(status_code=429, detail="Too many emails sent. Try again in an hour.")
     raw = secrets.token_urlsafe(32)
     db.create_account_token(conn, account, "verify_email", email, db.hash_token(raw), db.VERIFY_HOURS * 60)
@@ -322,7 +323,9 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, conn=Depen
                             detail="Password reset by email is not set up yet. Ask an admin for help.")
     for account in db.get_users_for_reset(conn, payload.email):
         if (not account["has_password"]
-                or db.recent_link_count(conn, account["id"], "reset_password") >= db.MAX_LINKS_PER_HOUR):
+                or db.recent_link_count(conn, account["id"], "reset_password") >= db.MAX_LINKS_PER_HOUR
+                or db.recent_email_link_count(conn, payload.email, "reset_password")
+                >= db.MAX_LINKS_PER_EMAIL_HOUR):
             continue
         raw = secrets.token_urlsafe(32)
         db.create_account_token(conn, account, "reset_password", payload.email, db.hash_token(raw),
@@ -721,7 +724,7 @@ def admin_users(admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
 
 @app.post("/api/v1/admin/users/{user_id}/unlock", tags=["Admin"])
 def admin_unlock_user(user_id: int, admin: dict = Depends(require_admin), conn=Depends(db.get_db)):
-    """Clear the 15-minute lockout after 5 wrong passwords."""
+    """Clear the 5-minute lockout after 10 wrong passwords."""
     if not db.admin_unlock(conn, admin, user_id):
         raise HTTPException(status_code=404, detail="User not found.")
     return {"user_id": user_id, "unlocked": True}

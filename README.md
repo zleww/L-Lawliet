@@ -25,7 +25,7 @@ L-Lawliet is the **Main Kitchen** (Central Backend API) for our 3 websites. It h
 |---|---|---|
 | GET | `/api/health` | Public (checks the database too) |
 | GET | `/api/v1/law-index` | Public (full list of 19,000+ statutes: `q`, `type`, `year`, `page`, `per_page` up to 50) |
-| POST | `/api/v1/auth/login` | Public (5 wrong passwords lock the account for 15 min) |
+| POST | `/api/v1/auth/login` | Public (10 wrong passwords lock the account for 5 min) |
 | POST | `/api/v1/auth/register` | Public (creates a `user` account) |
 | POST | `/api/v1/auth/google` | Public (Sign in with Google; needs `GOOGLE_CLIENT_ID`) |
 | GET | `/api/v1/auth/config` | Public (Google client ID for the login page) |

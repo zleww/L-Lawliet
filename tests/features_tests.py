@@ -231,7 +231,7 @@ if admin_user and admin_pw:
     check("AD-06", "admin user list shows the test accounts", s == 200 and any(u["username"] == ann for u in b["users"]), f"{s}")
 
     cara, cara_t, cara_id = new_account("cara")
-    for _ in range(5):
+    for _ in range(10):
         call("POST", "/api/v1/auth/login", {"username": cara, "password": "WrongPass1"})
     locked, _ = call("POST", "/api/v1/auth/login", {"username": cara, "password": PASSWORD})
     s, b = call("POST", f"/api/v1/admin/users/{cara_id}/unlock", token=adm)

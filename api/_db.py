@@ -70,8 +70,10 @@ USER_PUBLIC = """
     FROM users
 """
 
-MAX_FAILED_LOGINS = 5
-LOCKOUT_MINUTES = 15
+# 10 wrong passwords in a row lock the account for 5 minutes: still at most ~120 guesses an
+# hour, but a stranger typing wrong passwords can only lock someone out briefly.
+MAX_FAILED_LOGINS = 10
+LOCKOUT_MINUTES = 5
 
 
 # ----------------------------------------------------------------------
@@ -523,7 +525,7 @@ def create_user(conn, *, username: str, password_hash=None, display_name=None,
 
 
 def record_failed_login(conn, account: dict):
-    """Count a wrong password. The 5th in a row locks the account for 15 minutes.
+    """Count a wrong password. The 10th in a row locks the account for 5 minutes.
     Runs as the account being logged into, so the users_update_self policy allows it."""
     with conn.cursor() as cur:
         act_as(cur, account)
@@ -613,6 +615,7 @@ def delete_user(conn, actor: dict, target_id=None):
 RESET_MINUTES = 30
 VERIFY_HOURS = 24
 MAX_LINKS_PER_HOUR = 3  # per account and purpose, so the API cannot be used to spam an inbox
+MAX_LINKS_PER_EMAIL_HOUR = 3  # per email address and purpose, across every account
 
 
 def hash_token(raw: str) -> str:
@@ -649,6 +652,18 @@ def recent_link_count(conn, user_id: int, purpose: str) -> int:
             "SELECT COUNT(*) AS n FROM account_tokens "
             "WHERE user_id = %s AND purpose = %s AND created_at > now() - interval '1 hour'",
             (user_id, purpose),
+        )
+        return cur.fetchone()["n"]
+
+
+def recent_email_link_count(conn, email: str, purpose: str) -> int:
+    """Links of this kind sent to this address in the last hour, by any account. Stops someone
+    signing up many accounts with a stranger's email to flood their inbox."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM account_tokens "
+            "WHERE lower(email) = lower(%s) AND purpose = %s AND created_at > now() - interval '1 hour'",
+            (email, purpose),
         )
         return cur.fetchone()["n"]
 

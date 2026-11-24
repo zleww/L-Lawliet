@@ -204,6 +204,16 @@ check("E-24", "a reset link sent to an unconfirmed sign-up email also confirms t
       s == 200 and s2 == 200 and b2.get("email") == erin_email, f"{s} {s2} {b2 and b2.get('email')}")
 
 # ----------------------------------------------------------------------
+print("--- One email address cannot be flooded by many sign-ups")
+spam_email = f"t_flood_{RUN}@example.com"
+statuses = []
+for i in range(4):
+    s, b = register(f"t_fl{i}_{RUN}", email=spam_email)
+    statuses.append((s, (b or {}).get("email_status") if isinstance(b, dict) else None))
+check("E-25", "4 sign-ups with one email: all accounts made, only the first 3 get a confirmation email",
+      [x[0] for x in statuses] == [201] * 4 and [x[1] for x in statuses] == ["sent"] * 3 + ["failed"], f"{statuses}")
+
+# ----------------------------------------------------------------------
 print("--- Database rules (RLS) on account_tokens")
 try:
     with db.cursor() as cur:
