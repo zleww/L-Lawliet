@@ -58,7 +58,7 @@ def check(test_id, name, ok, detail=""):
 
 
 def register(username, password=PASSWORD, **extra):
-    status, body = call("POST", "/api/v1/auth/register", {"username": username, "password": password, **extra})
+    status, body = call("POST", "/api/v1/auth/register", {"username": username, "password": password, "email": f"{username}@example.test", **extra})
     if status == 201:
         cleanup_tokens[username] = (body["token"], password)
     return status, body

@@ -131,12 +131,12 @@ class RegisterRequest(BaseModel):
     username: Username
     password: str = Field(max_length=200)
     display_name: Optional[Text(1, 100)] = None
-    email: Optional[str] = Field(default=None, max_length=254)  # optional; saved once confirmed
+    email: str = Field(max_length=254)  # required; saved on the account once confirmed
 
     @field_validator("email")
     @classmethod
-    def email_format(cls, value: Optional[str]) -> Optional[str]:
-        return normalize_email(value) if value else None
+    def email_format(cls, value: str) -> str:
+        return normalize_email(value)
 
     @field_validator("password")
     @classmethod

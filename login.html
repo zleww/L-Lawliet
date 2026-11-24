@@ -55,7 +55,7 @@
     <!-- Forgot password: emails a one-time link to the account's confirmed email -->
     <form id="forgotForm" class="comment-form hidden" autocomplete="on" style="margin-top: 0;">
       <h2 style="font-size: 1.2rem; margin-bottom: 6px;">Reset your password</h2>
-      <p class="field-hint" style="margin: 0 0 14px;">Enter your username or the email you confirmed in Settings. We will email you a link that works for 30 minutes.</p>
+      <p class="field-hint" style="margin: 0 0 14px;">Enter your username or your account's email. We will email you a link that works for 30 minutes.</p>
       <label for="forgotLogin" class="field-label">Username or email</label>
       <input id="forgotLogin" name="username" type="text" autocomplete="username" required maxlength="254">
       <button type="submit" id="forgotBtn" style="width: 100%;">Send reset link</button>
@@ -72,8 +72,8 @@
       <p class="field-hint">3 to 30 letters, numbers, dots or underscores.</p>
       <label for="newDisplayName" class="field-label">Display name (optional)</label>
       <input id="newDisplayName" name="display_name" type="text" autocomplete="name" maxlength="100">
-      <label for="newEmail" class="field-label">Email (optional, for password reset)</label>
-      <input id="newEmail" name="email" type="email" autocomplete="email" maxlength="254">
+      <label for="newEmail" class="field-label">Email</label>
+      <input id="newEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
       <p class="field-hint">We send a link to confirm it. Only used to reset your password.</p>
       <label for="newPassword" class="field-label">Password</label>
       <input id="newPassword" name="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
@@ -100,7 +100,6 @@
         // New account with an email: say whether the confirmation link went out, then continue.
         const text = {
           sent: "Account created. We emailed you a link to confirm your address.",
-          taken: "Account created. That email is already used by another account, so it was not added.",
           failed: "Account created, but the confirmation email could not be sent. You can add your email again in Settings.",
         }[data.email_status];
         const box = document.getElementById("signupError");
@@ -217,8 +216,7 @@
         const body = { username: document.getElementById("newUsername").value.trim(), password };
         const displayName = document.getElementById("newDisplayName").value.trim();
         if (displayName) body.display_name = displayName;
-        const email = document.getElementById("newEmail").value.trim();
-        if (email) body.email = email;
+        body.email = document.getElementById("newEmail").value.trim();
         submit(forms.signup, document.getElementById("signupBtn"), errorBox, "/api/v1/auth/register", body);
       });
 

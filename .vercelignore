@@ -9,11 +9,7 @@
 /report-screenshots
 
 # Project notes and tooling, not part of the website
-/CLAUDE.md
-/INSTALLED-SKILLS.md
 /README.md
-/graphify-out
-/.claude
 /.vscode
 
 # Local secrets (also git-ignored, listed here as a second guard)

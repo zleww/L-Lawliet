@@ -120,7 +120,7 @@ export const site: SiteContent = {
     { q: "What can I do without an account?", a: "Guests can read the first 10 laws, search and browse by category, and read classmates' notes. A free account unlocks every law, posting and voting on notes, rating and saving laws, and suggesting laws to add." },
     { q: "Is this legal advice?", a: "No. The summaries are a study aid. Every law links to its full text in the Official Gazette, which is the version to rely on." },
     { q: "Does my account work on JurisCards and the Arena?", a: "Yes. The three sites share one database, so the same username and password, or Google sign-in, works on each of them." },
-    { q: "I forgot my password. What now?", a: "Use \"Forgot password?\" on the login page. If you confirmed an email in Settings, we send a reset link that works once, for 30 minutes. If you did not, ask an admin to help you back in." },
+    { q: "I forgot my password. What now?", a: "Use \"Forgot password?\" on the login page. We email a reset link to the address on your account; it works once, for 30 minutes." },
   ],
 
   finalCta: {

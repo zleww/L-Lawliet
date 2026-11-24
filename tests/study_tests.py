@@ -54,7 +54,7 @@ def check(test_id, name, ok, detail=""):
 
 
 def register(username):
-    status, body = call("POST", "/api/v1/auth/register", {"username": username, "password": PASSWORD})
+    status, body = call("POST", "/api/v1/auth/register", {"username": username, "password": PASSWORD, "email": f"{username}@example.test"})
     if status != 201:
         sys.exit(f"could not create {username}: {status} {body}")
     return body["token"], body["user"]["id"]

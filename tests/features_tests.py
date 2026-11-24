@@ -58,7 +58,7 @@ def check(test_id, name, ok, detail=""):
 
 def new_account(prefix, display=None):
     username = f"t_{prefix}_{RUN}"
-    body = {"username": username, "password": PASSWORD}
+    body = {"username": username, "password": PASSWORD, "email": f"{username}@example.test"}
     if display:
         body["display_name"] = display
     s, b = call("POST", "/api/v1/auth/register", body)

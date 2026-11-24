@@ -1,4 +1,4 @@
-import{n as e,o as t,s as n}from"./landing-lgWS_Xxd.js";var r=n(t(),1),i=e(),a=5,o=3,s=2.4,c=`#version 300 es
+import{n as e,o as t,s as n}from"./landing-CkgDXA_p.js";var r=n(t(),1),i=e(),a=5,o=3,s=2.4,c=`#version 300 es
 in vec2 aPosition;
 void main() {
   gl_Position = vec4(aPosition, 0.0, 1.0);

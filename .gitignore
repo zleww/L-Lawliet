@@ -1,6 +1,5 @@
 __pycache__/
 *.pyc
-graphify-out/
 
 # Local secrets (never commit)
 .env

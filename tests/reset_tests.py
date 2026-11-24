@@ -84,7 +84,7 @@ def link_count(user_id, purpose):
 
 
 def register(username, **extra):
-    s, b = call("POST", "/api/v1/auth/register", {"username": username, "password": PASSWORD, **extra})
+    s, b = call("POST", "/api/v1/auth/register", {"username": username, "password": PASSWORD, "email": f"{username}@example.test", **extra})
     if s == 201:
         cleanup[username] = (b["token"], PASSWORD)
     return s, b
@@ -115,6 +115,8 @@ check("E-04", "account without a confirmed email -> same reply, no reset link ma
 
 s, b = register(f"t_bad_{RUN}", email="not-an-email")
 check("E-05", "sign up with a malformed email -> 422", s == 422, f"{s} {b}")
+s, b = call("POST", "/api/v1/auth/register", {"username": f"t_noemail_{RUN}", "password": PASSWORD})
+check("E-21", "sign up without an email -> 422", s == 422, f"{s} {b}")
 
 # ----------------------------------------------------------------------
 print("--- Confirm the recovery email")
@@ -136,9 +138,11 @@ s, b = register(dave)
 dave_id, dave_token = (b["user"]["id"], b["token"]) if s == 201 else (None, None)
 s, b = call("POST", "/api/v1/me/email", {"email": carol_email}, token=dave_token)
 check("E-10", "another account's email -> 409", s == 409, f"{s} {b}")
+s, b = register(f"t_dup_{RUN}", email=carol_email.upper())
+check("E-22", "sign up with an email another account confirmed -> 409", s == 409, f"{s} {b}")
 s, b = call("POST", "/api/v1/me/email", {"email": dave_email}, token=dave_token)
-check("E-11", "POST /me/email sends a confirmation link -> 202",
-      s == 202 and link_count(dave_id, "verify_email") == 1, f"{s} {b}")
+check("E-11", "POST /me/email sends a second confirmation link -> 202",
+      s == 202 and link_count(dave_id, "verify_email") == 2, f"{s} {b}")
 s, b = call("POST", "/api/v1/me/email", {"email": dave_email})
 check("E-12", "POST /me/email as a guest -> 401", s == 401, f"{s} {b}")
 

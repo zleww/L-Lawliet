@@ -164,24 +164,23 @@ def auth_config():
 
 @app.post("/api/v1/auth/register", status_code=201, tags=["Auth"])
 def register(payload: RegisterRequest, request: Request, conn=Depends(db.get_db)):
-    """An optional email gets a confirmation link; it is saved on the account once opened.
-    email_status in the response: "sent", "taken", "failed" or absent (no email given)."""
+    """The email is required. It gets a confirmation link and is saved on the account once opened.
+    email_status in the response: "sent" or "failed" (the account exists either way; the link
+    can be sent again from Settings)."""
     if db.username_taken(conn, payload.username):
         raise HTTPException(status_code=409, detail="That username is already taken.")
+    if db.email_taken(conn, payload.email, 0):
+        raise HTTPException(status_code=409, detail="That email is already used by another account.")
     account = db.create_user(
         conn, username=payload.username, password_hash=hash_password(payload.password),
         display_name=payload.display_name,
     )
     result = session_response(account)
-    if payload.email:
-        if db.email_taken(conn, payload.email, account["id"]):
-            result["email_status"] = "taken"
-        else:
-            try:
-                send_verification_link(conn, request, account, payload.email)
-                result["email_status"] = "sent"
-            except HTTPException:
-                result["email_status"] = "failed"
+    try:
+        send_verification_link(conn, request, account, payload.email)
+        result["email_status"] = "sent"
+    except HTTPException:
+        result["email_status"] = "failed"
     return result
 
 
