@@ -24,6 +24,7 @@ L-Lawliet is the **Main Kitchen** (Central Backend API) for our 3 websites. It h
 | Method | Path | Access |
 |---|---|---|
 | GET | `/api/health` | Public (checks the database too) |
+| GET | `/api/v1/law-index` | Public (full list of 19,000+ statutes: `q`, `type`, `year`, `page`, `per_page` up to 50) |
 | POST | `/api/v1/auth/login` | Public (5 wrong passwords lock the account for 15 min) |
 | POST | `/api/v1/auth/register` | Public (creates a `user` account) |
 | POST | `/api/v1/auth/google` | Public (Sign in with Google; needs `GOOGLE_CLIENT_ID`) |
@@ -67,8 +68,9 @@ The legacy `/api/laws...` read paths still work for JurisCard and JustGiveupATP 
 3. **Install:** `pip install -r requirements.txt`
 4. **Seed (once):** `python scripts/seed.py` loads the 30 laws, the existing note and the two test accounts.
 5. **Accounts and security rules:** run `scripts/migrate_002_accounts.sql` (owner role), deploy the code, then run `scripts/migrate_003_security_rules.sql` (Row-Level Security) and `scripts/migrate_004_comment_delete.sql`. Run `scripts/migrate_005_user_features.sql` BEFORE deploying the code that uses it (saved laws, ratings, votes, reports, suggestions, admin account tools). In that order: the old code cannot write once 003 is on.
-6. **Run locally:** `python scripts/dev.py`, then open http://127.0.0.1:8000 (site) and http://127.0.0.1:8000/api/docs (API).
-7. **Vercel:** add `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `ALLOWED_ORIGINS` and (for Google sign-in) `GOOGLE_CLIENT_ID` under Project Settings → Environment Variables (Production and Preview). The function region is set to Singapore (`sin1`) in `vercel.json`.
+6. **Full list of laws:** run `scripts/migrate_009_law_index.sql` (owner role) before deploying the code, then `python scripts/load_law_index.py` to load `scripts/law_index.csv`. To refresh the list (new laws each year), run `python scripts/fetch_law_index.py <cache-folder>`, then the loader again. New plain-English guides go in a batch file such as `scripts/seed_data_batch2.py` and are loaded with `python scripts/add_laws.py`.
+7. **Run locally:** `python scripts/dev.py`, then open http://127.0.0.1:8000 (site) and http://127.0.0.1:8000/api/docs (API).
+8. **Vercel:** add `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRE_MINUTES`, `ALLOWED_ORIGINS` and (for Google sign-in) `GOOGLE_CLIENT_ID` under Project Settings → Environment Variables (Production and Preview). The function region is set to Singapore (`sin1`) in `vercel.json`.
 
 ##  How to Update Laws
 

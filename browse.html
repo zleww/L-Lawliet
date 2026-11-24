@@ -32,16 +32,23 @@
   <!-- Browse Header Section -->
   <header class="hero" style="padding: 40px 4vw 60px;">
     <div class="hero-content" style="max-width: 800px;">
-      <h1>Browse All <span class="gold-text">Republic Acts.</span></h1>
-      <p>Search by RA number, title or topic, or narrow the list by category.</p>
-      
+      <h1>Browse <span class="gold-text">Philippine Laws.</span></h1>
+      <p>Read the plain-English guides, or search the full list of laws passed since 1900.</p>
+
       <div class="search-container" style="margin-top: 20px;">
-        <input type="text" id="searchInput" placeholder="Search by RA number, keyword, or topic..." />
+        <input type="text" id="searchInput" placeholder="Search by law number, keyword, or topic..." aria-label="Search laws" />
         <button class="search-btn" style="font-size: 0.9rem; font-weight: 600;">Search</button>
       </div>
     </div>
   </header>
 
+  <!-- Two views: the plain-English guides, and the full list of every law -->
+  <div class="view-tabs" role="tablist" aria-label="Which laws to show">
+    <button type="button" role="tab" id="tabGuides" class="view-tab is-active" aria-selected="true" aria-controls="guidesView" data-view="guides">Plain-English guides</button>
+    <button type="button" role="tab" id="tabAll" class="view-tab" aria-selected="false" aria-controls="allView" data-view="all" tabindex="-1">Full list <span id="listedCount" class="view-tab-count"></span></button>
+  </div>
+
+  <div id="guidesView" role="tabpanel" aria-labelledby="tabGuides">
   <!-- Category Filter Pills Section -->
   <section class="filter-section" style="padding: 0 4vw 30px; max-width: 1400px; margin: 0 auto;">
     <div id="categoryFilters" style="display: flex; flex-wrap: wrap; gap: 10px;">
@@ -59,6 +66,27 @@
   <main class="content-wrapper" style="margin-top: 20px;">
     <div id="lawsGrid" class="grid"></div>
   </main>
+  </div>
+
+  <!-- Full list: every Act, Commonwealth Act, Republic Act, Presidential Decree and Batas Pambansa -->
+  <section id="allView" class="law-index" role="tabpanel" aria-labelledby="tabAll" hidden>
+    <div class="law-index-types" id="typeFilters">
+      <button type="button" class="type-pill is-active" data-type="">All types</button>
+      <button type="button" class="type-pill" data-type="ra">Republic Acts</button>
+      <button type="button" class="type-pill" data-type="pd">Presidential Decrees</button>
+      <button type="button" class="type-pill" data-type="bp">Batas Pambansa</button>
+      <button type="button" class="type-pill" data-type="ca">Commonwealth Acts</button>
+      <button type="button" class="type-pill" data-type="act">Acts (1900–1935)</button>
+    </div>
+    <p id="indexSummary" class="law-index-summary" aria-live="polite"></p>
+    <ol id="indexList" class="law-index-list"></ol>
+    <nav class="law-index-pager" aria-label="Pages">
+      <button type="button" id="prevPage" class="pager-btn">&larr; Newer</button>
+      <span id="pageInfo"></span>
+      <button type="button" id="nextPage" class="pager-btn">Older &rarr;</button>
+    </nav>
+    <p class="law-index-note">Titles and links come from the LawPhil Project's public archive. Laws marked <span class="has-guide-chip">Guide</span> also have a plain-English explanation here.</p>
+  </section>
 
   <!-- Modal Deep Dive View -->
   <div id="lawModal" class="modal hidden">
@@ -131,13 +159,145 @@
           .catch(err => console.error("Could not open the law:", err));
       }
 
+      // ---- Full list: every law on record, one page at a time ----
+      const { escapeHtml: esc, errorMessage } = window.LawlietAuth;
+      const tabs = [...document.querySelectorAll(".view-tab")];
+      const views = { guides: document.getElementById("guidesView"), all: document.getElementById("allView") };
+      const indexList = document.getElementById("indexList");
+      const indexSummary = document.getElementById("indexSummary");
+      const pageInfo = document.getElementById("pageInfo");
+      const prevBtn = document.getElementById("prevPage");
+      const nextBtn = document.getElementById("nextPage");
+      const typePills = [...document.querySelectorAll(".type-pill")];
+      const PER_PAGE = 25;
+      let view = "guides";
+      let indexType = "";
+      let indexPage = 1;
+      let indexPages = 1;
+      let indexReq = 0;
+      let indexLoaded = false;
+
+      const fmtDate = iso => iso
+        ? new Date(iso + "T00:00:00").toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })
+        : "";
+
+      async function fetchIndex() {
+        const params = new URLSearchParams({ page: indexPage, per_page: PER_PAGE });
+        const query = searchInput ? searchInput.value.trim() : "";
+        if (query) params.set("q", query);
+        if (indexType) params.set("type", indexType);
+        const mine = ++indexReq;
+        indexList.setAttribute("aria-busy", "true");
+        try {
+          const res = await apiFetch(`/api/v1/law-index?${params}`);
+          if (!res.ok) throw new Error(await errorMessage(res));
+          const data = await res.json();
+          if (mine === indexReq) renderIndex(data, query);
+        } catch (error) {
+          console.error("Could not load the full list:", error);
+          if (mine === indexReq) {
+            indexList.innerHTML = "";
+            indexSummary.textContent = "Could not load the full list. Try again in a moment.";
+          }
+        } finally {
+          if (mine === indexReq) indexList.removeAttribute("aria-busy");
+        }
+      }
+
+      function renderIndex(data, query) {
+        indexLoaded = true;
+        indexPages = Math.max(1, Math.ceil(data.total / PER_PAGE));
+        const n = data.total.toLocaleString("en-PH");
+        indexSummary.textContent = data.total === 0
+          ? `No laws match${query ? ` "${query}"` : ""}.`
+          : query
+            ? `${n} ${data.total === 1 ? "law matches" : "laws match"} "${query}"`
+            : `${n} ${data.total === 1 ? "law" : "laws"}`;
+        indexList.innerHTML = data.items.map(law => `
+          <li class="law-row">
+            <div class="law-row-head">
+              <span class="law-row-label">${esc(law.label)}</span>
+              ${law.law_id ? '<span class="has-guide-chip">Guide</span>' : ""}
+              <span class="law-row-date">${esc(fmtDate(law.enacted_on) || law.year)}</span>
+            </div>
+            <p class="law-row-title">${esc(law.official_title)}</p>
+            <div class="law-row-actions">
+              ${law.law_id ? `<button type="button" class="law-row-guide" data-law="${esc(law.law_id)}">Read the guide</button>` : ""}
+              <a href="${esc(law.source_url)}" target="_blank" rel="noopener noreferrer">Full text<span class="visually-hidden"> of ${esc(law.label)} (opens in a new tab)</span> &#8599;</a>
+            </div>
+          </li>`).join("");
+        pageInfo.textContent = data.total ? `Page ${data.page.toLocaleString("en-PH")} of ${indexPages.toLocaleString("en-PH")}` : "";
+        prevBtn.disabled = data.page <= 1;
+        nextBtn.disabled = data.page >= indexPages;
+      }
+
+      indexList.addEventListener("click", async e => {
+        const btn = e.target.closest(".law-row-guide");
+        if (!btn) return;
+        const res = await apiFetch(`/api/v1/laws/${encodeURIComponent(btn.dataset.law)}`);
+        if (res.ok) show(await res.json()); else alert(await errorMessage(res));
+      });
+
+      function goToPage(p) {
+        indexPage = Math.min(Math.max(1, p), indexPages);
+        fetchIndex();
+        document.getElementById("tabAll").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      prevBtn.addEventListener("click", () => goToPage(indexPage - 1));
+      nextBtn.addEventListener("click", () => goToPage(indexPage + 1));
+
+      typePills.forEach(pill => pill.addEventListener("click", () => {
+        typePills.forEach(p => p.classList.toggle("is-active", p === pill));
+        indexType = pill.dataset.type;
+        indexPage = 1;
+        fetchIndex();
+      }));
+
+      function setView(next, { focus = false, remember = true } = {}) {
+        view = next;
+        tabs.forEach(t => {
+          const on = t.dataset.view === next;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-selected", on);
+          t.tabIndex = on ? 0 : -1;
+          if (on && focus) t.focus();
+        });
+        views.guides.hidden = next !== "guides";
+        views.all.hidden = next !== "all";
+        if (next === "all" && !indexLoaded) fetchIndex();
+        if (next === "guides") fetchLaws();
+        if (remember) {
+          const url = new URL(window.location.href);
+          if (next === "all") url.searchParams.set("view", "all"); else url.searchParams.delete("view");
+          history.replaceState(null, "", url);
+        }
+      }
+      tabs.forEach(t => t.addEventListener("click", () => setView(t.dataset.view)));
+      document.querySelector(".view-tabs").addEventListener("keydown", e => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+        e.preventDefault();
+        setView(view === "guides" ? "all" : "guides", { focus: true });
+      });
+
+      apiFetch("/api/v1/stats")
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => {
+          if (data && data.listed) document.getElementById("listedCount").textContent = data.listed.toLocaleString("en-PH");
+        })
+        .catch(() => {});
+
+      const refresh = () => {
+        if (view === "all") { indexPage = 1; fetchIndex(); } else fetchLaws();
+      };
       let timer;
       if (searchInput) {
         searchInput.addEventListener("input", () => {
           clearTimeout(timer);
-          timer = setTimeout(fetchLaws, 300);
+          timer = setTimeout(refresh, 300);
         });
       }
+      const searchBtn = document.querySelector(".search-btn");
+      if (searchBtn) searchBtn.addEventListener("click", () => { clearTimeout(timer); refresh(); });
 
       filterButtons.forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -158,7 +318,9 @@
       });
 
       wireModalClose(modal, document.getElementById("closeModal"));
-      if (startButton) startButton.click(); else fetchLaws();
+      if (urlParams.get("view") === "all") setView("all", { remember: false });
+      else if (startButton) startButton.click();
+      else fetchLaws();
     });
   </script>
 </body>

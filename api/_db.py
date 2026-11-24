@@ -8,6 +8,8 @@ policies in scripts/migrate_003_security_rules.sql can check it.
 import hashlib
 import logging
 import os
+import re
+from typing import Optional
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -202,7 +204,74 @@ def stats(conn):
     with conn.cursor() as cur:
         cur.execute("SELECT category, COUNT(*) AS n FROM laws GROUP BY category")
         by_category = {row["category"]: row["n"] for row in cur.fetchall()}
-    return {"total": sum(by_category.values()), "categories": by_category}
+        cur.execute("SELECT COUNT(*) AS n FROM law_index")
+        listed = cur.fetchone()["n"]
+    return {"total": sum(by_category.values()), "categories": by_category, "listed": listed}
+
+
+# ----------------------------------------------------------------------
+# Full list of statutes (law_index): public, read only
+# ----------------------------------------------------------------------
+# "RA 10175", "R.A. No. 10175", "Republic Act 10175", "PD 1606", "BP 22", "10175"
+_NUMBER_QUERY = re.compile(
+    r"^\s*(?:(?P<type>r\.?\s*a|republic\s+act|c\.?\s*a|commonwealth\s+act|p\.?\s*d|presidential\s+decree"
+    r"|b\.?\s*p|batas\s+pambansa|act)\.?\s*(?:no\.?|blg\.?|number)?\s*)?(?P<num>\d+[a-z]?)\s*$",
+    re.I,
+)
+
+
+def _law_type_of(word: Optional[str]) -> Optional[str]:
+    if not word:
+        return None
+    w = re.sub(r"[\s.]", "", word.lower())
+    return {"ra": "ra", "republicact": "ra", "ca": "ca", "commonwealthact": "ca", "pd": "pd",
+            "presidentialdecree": "pd", "bp": "bp", "bataspambansa": "bp", "act": "act"}[w]
+
+
+INDEX_SELECT = (
+    "SELECT i.id, i.law_type, i.number, i.label, i.enacted_on, i.year, i.official_title, "
+    "i.source_url, i.law_id FROM law_index i"
+)
+INDEX_ORDER = "i.year DESC, NULLIF(regexp_replace(i.number, '\\D', '', 'g'), '')::int DESC"
+
+
+def list_law_index(conn, *, q=None, law_type=None, year=None, page=1, per_page=25):
+    """One page of the full statute list, newest first, or best match first when searching.
+    A query that is just a law number ("RA 10175", "10175") matches that number exactly."""
+    where, params, order, order_params = [], [], INDEX_ORDER, []
+    if law_type:
+        where.append("i.law_type = %s")
+        params.append(law_type)
+    if year:
+        where.append("i.year = %s")
+        params.append(year)
+    if q:
+        m = _NUMBER_QUERY.match(q)
+        if m:
+            where.append("lower(i.number) = lower(%s)")
+            params.append(m["num"])
+            typed = _law_type_of(m["type"])
+            if typed:
+                where.append("i.law_type = %s")
+                params.append(typed)
+        else:
+            where.append("i.search @@ websearch_to_tsquery('english', %s)")
+            params.append(q)
+            order = "ts_rank(i.search, websearch_to_tsquery('english', %s)) DESC, " + INDEX_ORDER
+            order_params = [q]
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) AS n FROM law_index i" + clause, params)
+        total = cur.fetchone()["n"]
+        cur.execute(
+            INDEX_SELECT + clause + f" ORDER BY {order} LIMIT %s OFFSET %s",
+            params + order_params + [per_page, (page - 1) * per_page],
+        )
+        items = cur.fetchall()
+    for item in items:
+        if item["enacted_on"] is not None:
+            item["enacted_on"] = item["enacted_on"].isoformat()
+    return items, total
 
 
 # ----------------------------------------------------------------------

@@ -409,6 +409,26 @@ def get_stats(conn=Depends(db.get_db)):
 
 
 # ==========================================================
+# FULL LIST OF STATUTES (Public): number, date, title, link
+# ==========================================================
+@app.get("/api/v1/law-index", tags=["Laws"])
+def get_law_index(
+    q: Optional[str] = Query(default=None, max_length=100, description="Words or a law number"),
+    type: Optional[Literal["act", "ca", "ra", "pd", "bp"]] = None,
+    year: Optional[int] = Query(default=None, ge=1890, le=2100),
+    page: int = Query(default=1, ge=1, le=2000),
+    per_page: int = Query(default=25, ge=1, le=50),
+    conn=Depends(db.get_db),
+):
+    """Every Act, Commonwealth Act, Republic Act, Presidential Decree and Batas Pambansa.
+    `law_id` is set when the law also has a plain-English card at /api/v1/laws/{law_id}."""
+    items, total = db.list_law_index(
+        conn, q=(q or "").strip() or None, law_type=type, year=year, page=page, per_page=per_page
+    )
+    return {"total": total, "page": page, "per_page": per_page, "items": items}
+
+
+# ==========================================================
 # SEARCH LAWS (guest: first 10 only)
 # ==========================================================
 @app.get("/api/v1/laws/search", tags=["Laws"])
