@@ -619,12 +619,22 @@ def hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def get_user_for_reset(conn, login: str):
-    """Find an account by username, or by verified email when the input contains '@'."""
-    column = "email" if "@" in login else "username"
+def get_users_for_reset(conn, email: str):
+    """Accounts a reset link for this email may go to: the account that confirmed it, or else
+    accounts that signed up with it and have not confirmed yet (their newest confirmation link
+    went there). The link is only ever sent to this address, so only its owner can use it."""
     with conn.cursor() as cur:
-        cur.execute(USER_PUBLIC + f" WHERE lower({column}) = lower(%s)", (login,))
-        return cur.fetchone()
+        cur.execute(USER_PUBLIC + " WHERE lower(email) = lower(%s)", (email,))
+        confirmed = cur.fetchall()
+        if confirmed:
+            return confirmed
+        cur.execute(
+            USER_PUBLIC + " WHERE email IS NULL AND lower(%s) = lower(("
+            "  SELECT t.email FROM account_tokens t WHERE t.user_id = users.id "
+            "  AND t.purpose = 'verify_email' ORDER BY t.created_at DESC LIMIT 1))",
+            (email,),
+        )
+        return cur.fetchall()
 
 
 def email_taken(conn, email: str, except_id: int) -> bool:
@@ -698,6 +708,13 @@ def reset_password_with_token(conn, token: dict, password_hash: str):
             "UPDATE users SET password_hash = %s, token_version = token_version + 1, "
             "failed_logins = 0, locked_until = NULL, updated_at = now() WHERE id = %s",
             (password_hash, account["id"]),
+        )
+        # The link reached this inbox, which proves the address: an account that had not
+        # confirmed its sign-up email gets it confirmed now (unless another account has it).
+        cur.execute(
+            "UPDATE users SET email = %s WHERE id = %s AND email IS NULL "
+            "AND NOT EXISTS (SELECT 1 FROM users o WHERE lower(o.email) = lower(%s))",
+            (token["email"], account["id"], token["email"]),
         )
     conn.commit()
     return get_user_by_id(conn, account["id"])

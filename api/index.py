@@ -238,7 +238,7 @@ def google_login(payload: GoogleLoginRequest, conn=Depends(db.get_db)):
     if account is None:
         name = (claims.get("name") or "").strip()[:100] or None
         email = claims["email"].lower()
-        if db.get_user_for_reset(conn, email) is not None:
+        if db.email_taken(conn, email, 0):
             email = None  # a username account already confirmed this address; keep it there
         account = db.create_user(
             conn, username=_username_from_email(conn, claims["email"]), display_name=name,
@@ -278,7 +278,7 @@ def change_password(payload: PasswordChange, user: dict = Depends(require_user),
 # but only if that site is in ALLOWED_ORIGINS. The token travels in the URL fragment
 # (#token=...), which browsers never send to a server or in a Referer header.
 # ==========================================================
-FORGOT_REPLY = {"detail": "If that account has a confirmed email, a reset link is on its way. "
+FORGOT_REPLY = {"detail": "If an account uses that email, a reset link is on its way. "
                           "Check your inbox and spam folder."}
 LINK_INVALID = "This link is invalid, expired or already used."
 
@@ -313,24 +313,25 @@ def send_verification_link(conn, request: Request, account: dict, email: str) ->
 
 @app.post("/api/v1/auth/forgot-password", status_code=202, tags=["Auth"])
 def forgot_password(payload: ForgotPasswordRequest, request: Request, conn=Depends(db.get_db)):
-    """Emails a one-time reset link (valid 30 minutes) to the account's confirmed email.
+    """Emails a one-time reset link (valid 30 minutes) to the account that uses this email:
+    its confirmed email, or the sign-up email it has not confirmed yet (using the link confirms it).
     The reply is the same whether or not the account exists, so it cannot be used to
     find out which usernames or emails are registered. Google-only accounts are skipped."""
     if not mail.mail_configured():
         raise HTTPException(status_code=503,
                             detail="Password reset by email is not set up yet. Ask an admin for help.")
-    account = db.get_user_for_reset(conn, payload.login)
-    if (account is None or not account["email"] or not account["has_password"]
-            or db.recent_link_count(conn, account["id"], "reset_password") >= db.MAX_LINKS_PER_HOUR):
-        return FORGOT_REPLY
-    raw = secrets.token_urlsafe(32)
-    db.create_account_token(conn, account, "reset_password", account["email"], db.hash_token(raw),
-                            db.RESET_MINUTES)
-    link = f"{site_origin(request)}/reset-password.html#token={raw}"
-    try:
-        _deliver(account["email"], mail.reset_password_email(link, account["username"], db.RESET_MINUTES))
-    except HTTPException:
-        log.error("Reset email for account %s was not sent", account["id"])  # same reply either way
+    for account in db.get_users_for_reset(conn, payload.email):
+        if (not account["has_password"]
+                or db.recent_link_count(conn, account["id"], "reset_password") >= db.MAX_LINKS_PER_HOUR):
+            continue
+        raw = secrets.token_urlsafe(32)
+        db.create_account_token(conn, account, "reset_password", payload.email, db.hash_token(raw),
+                                db.RESET_MINUTES)
+        link = f"{site_origin(request)}/reset-password.html#token={raw}"
+        try:
+            _deliver(payload.email, mail.reset_password_email(link, account["username"], db.RESET_MINUTES))
+        except HTTPException:
+            log.error("Reset email for account %s was not sent", account["id"])  # same reply either way
     return FORGOT_REPLY
 
 

@@ -52,12 +52,12 @@
       <p style="margin-top: 12px; text-align: center;"><a href="#forgot" id="forgotLink" style="color: var(--accent-gold);">Forgot password?</a></p>
     </form>
 
-    <!-- Forgot password: emails a one-time link to the account's confirmed email -->
+    <!-- Forgot password: emails a one-time link to the email on the account -->
     <form id="forgotForm" class="comment-form hidden" autocomplete="on" style="margin-top: 0;">
       <h2 style="font-size: 1.2rem; margin-bottom: 6px;">Reset your password</h2>
-      <p class="field-hint" style="margin: 0 0 14px;">Enter your username or your account's email. We will email you a link that works for 30 minutes.</p>
-      <label for="forgotLogin" class="field-label">Username or email</label>
-      <input id="forgotLogin" name="username" type="text" autocomplete="username" required maxlength="254">
+      <p class="field-hint" style="margin: 0 0 14px;">Enter the email address you signed up with. We will email you a link that works for 30 minutes.</p>
+      <label for="forgotLogin" class="field-label">Email</label>
+      <input id="forgotLogin" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254">
       <button type="submit" id="forgotBtn" style="width: 100%;">Send reset link</button>
       <p id="forgotError" role="alert" class="form-error"></p>
       <p id="forgotMsg" role="status" class="form-ok"></p>
@@ -138,7 +138,8 @@
         forms.login.classList.toggle("hidden", open);
         forms.signup.classList.add("hidden");
         if (open) {
-          document.getElementById("forgotLogin").value = document.getElementById("username").value.trim();
+          const typed = document.getElementById("username").value.trim();
+          document.getElementById("forgotLogin").value = typed.includes("@") ? typed : "";
           document.getElementById("forgotLogin").focus();
         } else {
           showTab("login");
@@ -160,7 +161,7 @@
           const res = await fetch("/api/v1/auth/forgot-password", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: document.getElementById("forgotLogin").value.trim() }),
+            body: JSON.stringify({ email: document.getElementById("forgotLogin").value.trim() }),
           });
           if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
           msg.textContent = (await res.json()).detail;

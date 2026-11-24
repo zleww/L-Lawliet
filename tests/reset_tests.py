@@ -96,12 +96,12 @@ carol_email, dave_email = f"t_carol_{RUN}@example.com", f"t_dave_{RUN}@example.c
 
 # ----------------------------------------------------------------------
 print("--- Forgot password")
-s, b = call("POST", "/api/v1/auth/forgot-password", {"login": f"nobody_{RUN}"})
+s, b = call("POST", "/api/v1/auth/forgot-password", {"email": f"nobody_{RUN}@example.test"})
 if s == 503:
     print("  The server cannot send email (set SMTP_* or MAIL_DEV_LOG=1). Stopping.")
     sys.exit(1)
 generic = b
-check("E-01", "unknown account -> 202 with the generic reply", s == 202 and "detail" in b, f"{s} {b}")
+check("E-01", "unknown email -> 202 with the generic reply", s == 202 and "detail" in b, f"{s} {b}")
 
 s, b = register(carol, email=carol_email.upper())
 check("E-02", "sign up with an email -> 201, confirmation link sent", s == 201 and b.get("email_status") == "sent", f"{s} {b}")
@@ -109,9 +109,12 @@ carol_id, carol_token = (b["user"]["id"], b["token"]) if s == 201 else (None, No
 s2, b2 = call("GET", "/api/v1/me", token=carol_token)
 check("E-03", "email is not saved until it is confirmed", s2 == 200 and b2["email"] is None, f"{s2} {b2}")
 
-s, b = call("POST", "/api/v1/auth/forgot-password", {"login": carol})
-check("E-04", "account without a confirmed email -> same reply, no reset link made",
-      s == 202 and b == generic and link_count(carol_id, "reset_password") == 0, f"{s} {b}")
+s, b = call("POST", "/api/v1/auth/forgot-password", {"email": carol})
+check("E-04", "forgot by username -> 422 (a reset link needs an email)",
+      s == 422 and link_count(carol_id, "reset_password") == 0, f"{s} {b}")
+s, b = call("POST", "/api/v1/auth/forgot-password", {"email": carol_email})
+check("E-23", "forgot by the sign-up email before it is confirmed -> same reply, reset link made",
+      s == 202 and b == generic and link_count(carol_id, "reset_password") == 1, f"{s} {b}")
 
 s, b = register(f"t_bad_{RUN}", email="not-an-email")
 check("E-05", "sign up with a malformed email -> 422", s == 422, f"{s} {b}")
@@ -149,10 +152,10 @@ check("E-12", "POST /me/email as a guest -> 401", s == 401, f"{s} {b}")
 # ----------------------------------------------------------------------
 print("--- Reset the password")
 s, b = call("POST", "/api/v1/auth/forgot-password", {"login": carol_email.upper()})
-check("E-13", "forgot by email (any letter case) -> 202 and a reset link is made",
-      s == 202 and link_count(carol_id, "reset_password") == 1, f"{s} {b}")
+check("E-13", "forgot by email (any letter case, old 'login' field) -> 202 and a reset link is made",
+      s == 202 and link_count(carol_id, "reset_password") == 2, f"{s} {b}")
 for _ in range(4):
-    call("POST", "/api/v1/auth/forgot-password", {"login": carol})
+    call("POST", "/api/v1/auth/forgot-password", {"email": carol_email})
 check("E-14", "at most 3 reset emails per account per hour",
       link_count(carol_id, "reset_password") == 3, f"{link_count(carol_id, 'reset_password')} links")
 
@@ -187,6 +190,18 @@ with db.cursor() as cur:
     live = cur.fetchone()["n"]
 db.commit()
 check("E-20", "a successful reset retires the account's other reset links", live == 0, f"{live} still live")
+
+erin = f"t_erin_{RUN}"
+s, b = register(erin)
+erin_id, erin_email = (b["user"]["id"], f"{erin}@example.test") if s == 201 else (None, None)
+raw = new_link(erin_id, "reset_password", erin_email)
+erin_password = f"Er1n{RUN}pass"
+s, b = call("POST", "/api/v1/auth/reset-password", {"token": raw, "new_password": erin_password})
+if s == 200:
+    cleanup[erin] = (b["token"], erin_password)
+s2, b2 = call("GET", "/api/v1/me", token=(b or {}).get("token"))
+check("E-24", "a reset link sent to an unconfirmed sign-up email also confirms that email",
+      s == 200 and s2 == 200 and b2.get("email") == erin_email, f"{s} {s2} {b2 and b2.get('email')}")
 
 # ----------------------------------------------------------------------
 print("--- Database rules (RLS) on account_tokens")

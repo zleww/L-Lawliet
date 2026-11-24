@@ -199,9 +199,21 @@ class EmailChange(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
+    """The email on the account. `login` is still accepted from older pages, but it must be
+    an email too: a reset link can only be sent to an email address."""
     model_config = ConfigDict(extra="forbid")
 
-    login: Text(1, 254)  # username or email
+    email: Optional[str] = Field(default=None, max_length=254)
+    login: Optional[str] = Field(default=None, max_length=254)
+
+    @model_validator(mode="after")
+    def one_email(self):
+        value = (self.email or self.login or "").strip()
+        if "@" not in value:
+            raise ValueError("Enter the email address on your account.")
+        self.email = normalize_email(value)
+        self.login = None
+        return self
 
 
 Token = Annotated[str, StringConstraints(min_length=20, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")]
