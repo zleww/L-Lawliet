@@ -49,6 +49,20 @@
       <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200">
       <button type="submit" id="loginBtn" style="width: 100%;">Log in</button>
       <p id="loginError" role="alert" class="form-error"></p>
+      <p style="margin-top: 12px; text-align: center;"><a href="#forgot" id="forgotLink" style="color: var(--accent-gold);">Forgot password?</a></p>
+    </form>
+
+    <!-- Forgot password: emails a one-time link to the account's confirmed email -->
+    <form id="forgotForm" class="comment-form hidden" autocomplete="on" style="margin-top: 0;">
+      <h2 style="font-size: 1.2rem; margin-bottom: 6px;">Reset your password</h2>
+      <p class="field-hint" style="margin: 0 0 14px;">Enter your username or the email you confirmed in Settings. We will email you a link that works for 30 minutes.</p>
+      <label for="forgotLogin" class="field-label">Username or email</label>
+      <input id="forgotLogin" name="username" type="text" autocomplete="username" required maxlength="254">
+      <button type="submit" id="forgotBtn" style="width: 100%;">Send reset link</button>
+      <p id="forgotError" role="alert" class="form-error"></p>
+      <p id="forgotMsg" role="status" class="form-ok"></p>
+      <p class="field-hint" style="margin: 12px 0 0;">No email on your account? Ask an admin to help you get back in.</p>
+      <p style="margin-top: 12px; text-align: center;"><a href="#login" id="backToLogin" style="color: var(--accent-gold);">Back to log in</a></p>
     </form>
 
     <form id="signupForm" class="comment-form hidden" autocomplete="on" style="margin-top: 0;">
@@ -58,6 +72,9 @@
       <p class="field-hint">3 to 30 letters, numbers, dots or underscores.</p>
       <label for="newDisplayName" class="field-label">Display name (optional)</label>
       <input id="newDisplayName" name="display_name" type="text" autocomplete="name" maxlength="100">
+      <label for="newEmail" class="field-label">Email (optional, for password reset)</label>
+      <input id="newEmail" name="email" type="email" autocomplete="email" maxlength="254">
+      <p class="field-hint">We send a link to confirm it. Only used to reset your password.</p>
       <label for="newPassword" class="field-label">Password</label>
       <input id="newPassword" name="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
       <p class="field-hint">At least 8 characters, with a letter and a number.</p>
@@ -78,7 +95,22 @@
 
       function done(data) {
         saveSession(data);
-        window.location.href = data.role === "admin" ? "admin.html" : "index.html";
+        const home = data.role === "admin" ? "admin.html" : "index.html";
+        if (!data.email_status) { window.location.href = home; return; }
+        // New account with an email: say whether the confirmation link went out, then continue.
+        const text = {
+          sent: "Account created. We emailed you a link to confirm your address.",
+          taken: "Account created. That email is already used by another account, so it was not added.",
+          failed: "Account created, but the confirmation email could not be sent. You can add your email again in Settings.",
+        }[data.email_status];
+        const box = document.getElementById("signupError");
+        box.className = "form-ok";
+        box.innerHTML = "";
+        box.append(text + " ");
+        const go = document.createElement("a");
+        go.href = home; go.textContent = "Continue"; go.style.color = "var(--accent-gold)";
+        box.append(go);
+        go.focus();
       }
 
       if (params.get("expired") || params.get("signedout")) {
@@ -98,6 +130,49 @@
           forms[key].classList.toggle("hidden", key !== name);
         }
       }
+      // ---- Forgot password ----
+      const tabBar = document.querySelector(".auth-tabs");
+      const forgotForm = document.getElementById("forgotForm");
+      function showForgot(open) {
+        forgotForm.classList.toggle("hidden", !open);
+        tabBar.classList.toggle("hidden", open);
+        forms.login.classList.toggle("hidden", open);
+        forms.signup.classList.add("hidden");
+        if (open) {
+          document.getElementById("forgotLogin").value = document.getElementById("username").value.trim();
+          document.getElementById("forgotLogin").focus();
+        } else {
+          showTab("login");
+          document.getElementById("username").focus();
+        }
+      }
+      document.getElementById("forgotLink").addEventListener("click", (ev) => { ev.preventDefault(); showForgot(true); });
+      document.getElementById("backToLogin").addEventListener("click", (ev) => { ev.preventDefault(); showForgot(false); });
+      if (location.hash === "#forgot") showForgot(true);
+
+      forgotForm.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const btn = document.getElementById("forgotBtn");
+        const errorBox = document.getElementById("forgotError");
+        const msg = document.getElementById("forgotMsg");
+        errorBox.textContent = ""; msg.textContent = "";
+        btn.disabled = true;
+        try {
+          const res = await fetch("/api/v1/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ login: document.getElementById("forgotLogin").value.trim() }),
+          });
+          if (!res.ok) { errorBox.textContent = await errorMessage(res); return; }
+          msg.textContent = (await res.json()).detail;
+        } catch (err) {
+          console.error(err);
+          errorBox.textContent = "Could not reach the server. Please try again.";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
       tabs.login.addEventListener("click", () => showTab("login"));
       tabs.signup.addEventListener("click", () => showTab("signup"));
       if (params.get("signup")) showTab("signup");
@@ -142,6 +217,8 @@
         const body = { username: document.getElementById("newUsername").value.trim(), password };
         const displayName = document.getElementById("newDisplayName").value.trim();
         if (displayName) body.display_name = displayName;
+        const email = document.getElementById("newEmail").value.trim();
+        if (email) body.email = email;
         submit(forms.signup, document.getElementById("signupBtn"), errorBox, "/api/v1/auth/register", body);
       });
 

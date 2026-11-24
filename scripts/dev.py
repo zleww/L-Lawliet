@@ -1,6 +1,7 @@
 """Local development server: the API plus the static site on one address.
 
     python scripts/dev.py   ->  http://127.0.0.1:8000  (site)   /api/docs  (API)
+    python scripts/dev.py 8001  ->  same, on another port
 
 Vercel serves the static files itself, so this file is never deployed as part of the API.
 Only whitelisted file types are served, so .env and source files are never exposed.
@@ -18,7 +19,8 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from index import app
 
-PUBLIC_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webmanifest"}
+PUBLIC_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webmanifest",
+                     ".webp", ".woff2"}
 
 
 @app.get("/", include_in_schema=False)
@@ -43,4 +45,5 @@ def static_file(path: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Optional port: python scripts/dev.py 8001 (default 8000)
+    uvicorn.run(app, host="127.0.0.1", port=int(sys.argv[1]) if len(sys.argv) > 1 else 8000)

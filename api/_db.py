@@ -5,6 +5,7 @@ Column names in UPDATE come only from LAW_COLUMNS / PROFILE_COLUMNS, never from 
 Every write first tells PostgreSQL who is acting (act_as), so the Row-Level Security
 policies in scripts/migrate_003_security_rules.sql can check it.
 """
+import hashlib
 import logging
 import os
 
@@ -428,6 +429,123 @@ def delete_user(conn, actor: dict, target_id=None):
         row = cur.fetchone()
     conn.commit()
     return row is not None
+
+
+# ----------------------------------------------------------------------
+# Email links: verify a recovery email, reset a forgotten password (migration 008)
+# Only a SHA-256 hash of each link's token is stored, so a database leak cannot be
+# turned into working links. Every link works once and expires.
+# ----------------------------------------------------------------------
+RESET_MINUTES = 30
+VERIFY_HOURS = 24
+MAX_LINKS_PER_HOUR = 3  # per account and purpose, so the API cannot be used to spam an inbox
+
+
+def hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def get_user_for_reset(conn, login: str):
+    """Find an account by username, or by verified email when the input contains '@'."""
+    column = "email" if "@" in login else "username"
+    with conn.cursor() as cur:
+        cur.execute(USER_PUBLIC + f" WHERE lower({column}) = lower(%s)", (login,))
+        return cur.fetchone()
+
+
+def email_taken(conn, email: str, except_id: int) -> bool:
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM users WHERE lower(email) = lower(%s) AND id <> %s", (email, except_id))
+        return cur.fetchone() is not None
+
+
+def recent_link_count(conn, user_id: int, purpose: str) -> int:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM account_tokens "
+            "WHERE user_id = %s AND purpose = %s AND created_at > now() - interval '1 hour'",
+            (user_id, purpose),
+        )
+        return cur.fetchone()["n"]
+
+
+def create_account_token(conn, account: dict, purpose: str, email: str, token_hash: str, minutes: int):
+    """Runs as the account itself, so the account_tokens_insert_own policy allows it."""
+    with conn.cursor() as cur:
+        act_as(cur, account)
+        cur.execute(
+            "INSERT INTO account_tokens (user_id, purpose, email, token_hash, expires_at) "
+            "VALUES (%s, %s, %s, %s, now() + make_interval(mins => %s))",
+            (account["id"], purpose, email, token_hash, minutes),
+        )
+    conn.commit()
+
+
+def find_account_token(conn, token_hash: str, purpose: str):
+    """The token row if it exists, is unused and has not expired; otherwise None."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, user_id, email FROM account_tokens "
+            "WHERE token_hash = %s AND purpose = %s AND used_at IS NULL AND expires_at > now()",
+            (token_hash, purpose),
+        )
+        return cur.fetchone()
+
+
+def _use_token(cur, token_id: int, user_id: int, purpose: str) -> bool:
+    """Marks this link used (only once, even if two requests race) and retires the
+    account's other unused links of the same kind."""
+    cur.execute(
+        "UPDATE account_tokens SET used_at = now() WHERE id = %s AND used_at IS NULL RETURNING id",
+        (token_id,),
+    )
+    if cur.fetchone() is None:
+        return False
+    cur.execute(
+        "UPDATE account_tokens SET used_at = now() "
+        "WHERE user_id = %s AND purpose = %s AND used_at IS NULL",
+        (user_id, purpose),
+    )
+    return True
+
+
+def reset_password_with_token(conn, token: dict, password_hash: str):
+    """New password, signs out every device (token_version + 1) and clears any lockout.
+    Returns the account, or None if the link was used in the meantime."""
+    account = get_user_by_id(conn, token["user_id"])
+    if account is None:
+        return None
+    with conn.cursor() as cur:
+        act_as(cur, account)
+        if not _use_token(cur, token["id"], account["id"], "reset_password"):
+            conn.rollback()
+            return None
+        cur.execute(
+            "UPDATE users SET password_hash = %s, token_version = token_version + 1, "
+            "failed_logins = 0, locked_until = NULL, updated_at = now() WHERE id = %s",
+            (password_hash, account["id"]),
+        )
+    conn.commit()
+    return get_user_by_id(conn, account["id"])
+
+
+def verify_email_with_token(conn, token: dict):
+    """Saves the confirmed email on the account. Returns the account, or None if the link
+    was used in the meantime. UniqueViolation if another account confirmed it first."""
+    account = get_user_by_id(conn, token["user_id"])
+    if account is None:
+        return None
+    with conn.cursor() as cur:
+        act_as(cur, account)
+        if not _use_token(cur, token["id"], account["id"], "verify_email"):
+            conn.rollback()
+            return None
+        cur.execute(
+            "UPDATE users SET email = %s, updated_at = now() WHERE id = %s",
+            (token["email"], account["id"]),
+        )
+    conn.commit()
+    return get_user_by_id(conn, account["id"])
 
 
 

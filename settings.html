@@ -68,6 +68,19 @@
       </form>
     </section>
 
+    <!-- Recovery email (username accounts only; Google manages its own) -->
+    <section class="settings-section hidden" id="emailSection">
+      <h2>Recovery email</h2>
+      <p id="emailStatus">Add an email so you can reset your password if you forget it. We send a link to confirm it first.</p>
+      <form id="emailForm" class="comment-form" style="margin-top: 0;">
+        <label for="recoveryEmail" class="field-label">Email</label>
+        <input id="recoveryEmail" type="email" autocomplete="email" required maxlength="254">
+        <button type="submit" id="emailBtn">Send confirmation link</button>
+        <p id="emailError" role="alert" class="form-error"></p>
+        <p id="emailMsg" role="status" class="form-ok"></p>
+      </form>
+    </section>
+
     <!-- Password (hidden for Google-only accounts) -->
     <section class="settings-section hidden" id="passwordSection">
       <h2>Change password</h2>
@@ -147,6 +160,12 @@
       $("deleteUsername").textContent = profile.username;
       $("pwUsername").value = profile.username;
       if (profile.has_password) $("passwordSection").classList.remove("hidden");
+      if (!profile.google_linked) {
+        $("emailSection").classList.remove("hidden");
+        if (profile.email) {
+          $("emailStatus").textContent = `Confirmed: ${profile.email}. Password reset links go here. Enter a new address to change it.`;
+        }
+      }
       else $("deletePasswordBox").classList.add("hidden");
 
       async function send(btn, url, options, errorBox) {
@@ -193,6 +212,16 @@
           method: "PATCH", body: JSON.stringify({ theme: chosen("theme"), accent: chosen("accent") }),
         }, $("appearanceError"));
         if (saved) { updateUser(saved); applyTheme(); msg.textContent = "Appearance saved."; }
+      });
+
+      // ---- Recovery email: the API emails a link; the address is saved once it is opened ----
+      $("emailForm").addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        $("emailMsg").textContent = "";
+        const data = await send($("emailBtn"), "/api/v1/me/email", {
+          method: "POST", body: JSON.stringify({ email: $("recoveryEmail").value.trim() }),
+        }, $("emailError"));
+        if (data) { $("emailForm").reset(); $("emailMsg").textContent = data.detail; }
       });
 
       // ---- Password ----
