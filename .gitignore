@@ -7,3 +7,6 @@ graphify-out/
 .env.*
 !.env.example
 .venv/
+
+# Landing page build tools (landing/)
+node_modules/

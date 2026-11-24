@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="referrer" content="no-referrer">
+  <title>Confirm Email - L-Lawliet</title>
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#060D14">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+        <img src="images/logo.png" alt="L-Lawliet Logo" class="logo-img" />
+      </a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="browse.html">Browse Laws</a></li>
+    </ul>
+  </nav>
+
+  <main style="max-width: 420px; margin: 60px auto; padding: 0 16px;">
+    <h1 style="font-family: 'Playfair Display', serif; margin-bottom: 16px;">Confirm your <span class="gold-text">email</span></h1>
+    <p id="status" role="status" style="color: var(--text-muted);">Confirming…</p>
+    <p style="margin-top: 20px;"><a href="index.html" style="color: var(--accent-gold);">Go to L-Lawliet</a></p>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { errorMessage } = window.LawlietAuth;
+      const status = document.getElementById("status");
+      // Token from the fragment (never sent to a server), then cleared from the address bar.
+      const token = new URLSearchParams(location.hash.slice(1)).get("token");
+      if (location.hash) history.replaceState(null, "", location.pathname);
+      if (!token) { status.textContent = "This page needs the link from your confirmation email."; return; }
+      try {
+        const res = await fetch("/api/v1/auth/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (!res.ok) {
+          status.className = "form-error";
+          status.textContent = (await errorMessage(res)) + " You can send a new link from Settings.";
+          return;
+        }
+        const data = await res.json();
+        status.className = "form-ok";
+        status.textContent = `${data.email} is confirmed for @${data.username}. If you forget your password, use "Forgot password?" on the login page.`;
+      } catch (err) {
+        console.error(err);
+        status.className = "form-error";
+        status.textContent = "Could not reach the server. Please reload the link.";
+      }
+    });
+  </script>
+</body>
+</html>

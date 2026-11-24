@@ -114,12 +114,29 @@ def check_password_rules(password: str) -> str:
     return password
 
 
+_EMAIL_PATTERN = re.compile(r"^[^@\s]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
+
+
+def normalize_email(value: str) -> str:
+    """A light format check (a real check is the confirmation link). Stored lowercase."""
+    value = value.strip().lower()
+    if len(value) > 254 or not _EMAIL_PATTERN.match(value):
+        raise ValueError("Enter a valid email address.")
+    return value
+
+
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     username: Username
     password: str = Field(max_length=200)
     display_name: Optional[Text(1, 100)] = None
+    email: Optional[str] = Field(default=None, max_length=254)  # optional; saved once confirmed
+
+    @field_validator("email")
+    @classmethod
+    def email_format(cls, value: Optional[str]) -> Optional[str]:
+        return normalize_email(value) if value else None
 
     @field_validator("password")
     @classmethod
@@ -167,6 +184,45 @@ class PasswordChange(BaseModel):
     @classmethod
     def strong_password(cls, value: str) -> str:
         return check_password_rules(value)
+
+
+class EmailChange(BaseModel):
+    """Sends a confirmation link; the email is saved on the account only when it is opened."""
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(max_length=254)
+
+    @field_validator("email")
+    @classmethod
+    def email_format(cls, value: str) -> str:
+        return normalize_email(value)
+
+
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    login: Text(1, 254)  # username or email
+
+
+Token = Annotated[str, StringConstraints(min_length=20, max_length=200, pattern=r"^[A-Za-z0-9_-]+$")]
+
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: Token
+    new_password: str = Field(max_length=200)
+
+    @field_validator("new_password")
+    @classmethod
+    def strong_password(cls, value: str) -> str:
+        return check_password_rules(value)
+
+
+class VerifyEmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: Token
 
 
 class DeleteAccountRequest(BaseModel):

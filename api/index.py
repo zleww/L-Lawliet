@@ -27,18 +27,20 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 
 import _db as db
+import _mail as mail
 from _auth import (
     check_password, create_token, google_client_id, hash_password, optional_user,
     require_admin, require_user, verify_google_credential,
 )
 from _models import (
-    ArenaPrefsUpdate, ArenaResult, Category, CommentEdit, CommentSubmission, DeleteAccountRequest, FlashcardCreate,
-    FlashcardUpdate, GoogleLoginRequest, LawCreate, LawUpdate, LoginRequest, PasswordChange,
-    ProfileUpdate, ProgressUpdate, QuizResult, RatingRequest, RegisterRequest, ReportRequest,
-    ReportReview, StudyPrefsUpdate, SuggestionCreate, SuggestionReview,
+    ArenaPrefsUpdate, ArenaResult, Category, CommentEdit, CommentSubmission, DeleteAccountRequest, EmailChange,
+    FlashcardCreate, FlashcardUpdate, ForgotPasswordRequest, GoogleLoginRequest, LawCreate, LawUpdate,
+    LoginRequest, PasswordChange, ProfileUpdate, ProgressUpdate, QuizResult, RatingRequest, RegisterRequest,
+    ReportRequest, ReportReview, ResetPasswordRequest, StudyPrefsUpdate, SuggestionCreate, SuggestionReview,
+    VerifyEmailRequest,
 )
 
-API_VERSION = "2.3"
+API_VERSION = "2.4"
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lawliet.api")
 
@@ -161,14 +163,26 @@ def auth_config():
 
 
 @app.post("/api/v1/auth/register", status_code=201, tags=["Auth"])
-def register(payload: RegisterRequest, conn=Depends(db.get_db)):
+def register(payload: RegisterRequest, request: Request, conn=Depends(db.get_db)):
+    """An optional email gets a confirmation link; it is saved on the account once opened.
+    email_status in the response: "sent", "taken", "failed" or absent (no email given)."""
     if db.username_taken(conn, payload.username):
         raise HTTPException(status_code=409, detail="That username is already taken.")
     account = db.create_user(
         conn, username=payload.username, password_hash=hash_password(payload.password),
         display_name=payload.display_name,
     )
-    return session_response(account)
+    result = session_response(account)
+    if payload.email:
+        if db.email_taken(conn, payload.email, account["id"]):
+            result["email_status"] = "taken"
+        else:
+            try:
+                send_verification_link(conn, request, account, payload.email)
+                result["email_status"] = "sent"
+            except HTTPException:
+                result["email_status"] = "failed"
+    return result
 
 
 def password_login(conn, username: str, password: str) -> dict:
@@ -224,9 +238,12 @@ def google_login(payload: GoogleLoginRequest, conn=Depends(db.get_db)):
     account = db.get_user_by_google_sub(conn, claims["sub"])
     if account is None:
         name = (claims.get("name") or "").strip()[:100] or None
+        email = claims["email"].lower()
+        if db.get_user_for_reset(conn, email) is not None:
+            email = None  # a username account already confirmed this address; keep it there
         account = db.create_user(
             conn, username=_username_from_email(conn, claims["email"]), display_name=name,
-            email=claims["email"].lower(), google_sub=claims["sub"],
+            email=email, google_sub=claims["sub"],
         )
     return session_response(account)
 
@@ -254,6 +271,114 @@ def change_password(payload: PasswordChange, user: dict = Depends(require_user),
     if payload.new_password.lower() == user["username"].lower():
         raise HTTPException(status_code=422, detail="Password cannot be the same as the username.")
     return session_response(db.set_password(conn, user, hash_password(payload.new_password)))
+
+
+# ==========================================================
+# EMAIL LINKS: forgot password and recovery email (Public / User)
+# The link goes back to the site that asked for it (L-Lawliet, JurisCards or the Arena),
+# but only if that site is in ALLOWED_ORIGINS. The token travels in the URL fragment
+# (#token=...), which browsers never send to a server or in a Referer header.
+# ==========================================================
+FORGOT_REPLY = {"detail": "If that account has a confirmed email, a reset link is on its way. "
+                          "Check your inbox and spam folder."}
+LINK_INVALID = "This link is invalid, expired or already used."
+
+
+def site_origin(request: Request) -> str:
+    origin = (request.headers.get("origin") or "").rstrip("/")
+    if origin in allowed_origins:
+        return origin
+    return os.environ.get("PUBLIC_SITE_URL", "https://l-lawliet-three.vercel.app").rstrip("/")
+
+
+def _deliver(to: str, message: tuple) -> None:
+    subject, text, html = message
+    try:
+        mail.send_mail(to, subject, text, html)
+    except mail.MailNotConfigured:
+        raise HTTPException(status_code=503, detail="Email is not set up on this server yet.")
+    except mail.MailFailed:
+        raise HTTPException(status_code=502, detail="We could not send the email. Please try again later.")
+
+
+def send_verification_link(conn, request: Request, account: dict, email: str) -> None:
+    if not mail.mail_configured():
+        raise HTTPException(status_code=503, detail="Email is not set up on this server yet.")
+    if db.recent_link_count(conn, account["id"], "verify_email") >= db.MAX_LINKS_PER_HOUR:
+        raise HTTPException(status_code=429, detail="Too many emails sent. Try again in an hour.")
+    raw = secrets.token_urlsafe(32)
+    db.create_account_token(conn, account, "verify_email", email, db.hash_token(raw), db.VERIFY_HOURS * 60)
+    link = f"{site_origin(request)}/verify-email.html#token={raw}"
+    _deliver(email, mail.verify_email_email(link, account["username"], db.VERIFY_HOURS))
+
+
+@app.post("/api/v1/auth/forgot-password", status_code=202, tags=["Auth"])
+def forgot_password(payload: ForgotPasswordRequest, request: Request, conn=Depends(db.get_db)):
+    """Emails a one-time reset link (valid 30 minutes) to the account's confirmed email.
+    The reply is the same whether or not the account exists, so it cannot be used to
+    find out which usernames or emails are registered. Google-only accounts are skipped."""
+    if not mail.mail_configured():
+        raise HTTPException(status_code=503,
+                            detail="Password reset by email is not set up yet. Ask an admin for help.")
+    account = db.get_user_for_reset(conn, payload.login)
+    if (account is None or not account["email"] or not account["has_password"]
+            or db.recent_link_count(conn, account["id"], "reset_password") >= db.MAX_LINKS_PER_HOUR):
+        return FORGOT_REPLY
+    raw = secrets.token_urlsafe(32)
+    db.create_account_token(conn, account, "reset_password", account["email"], db.hash_token(raw),
+                            db.RESET_MINUTES)
+    link = f"{site_origin(request)}/reset-password.html#token={raw}"
+    try:
+        _deliver(account["email"], mail.reset_password_email(link, account["username"], db.RESET_MINUTES))
+    except HTTPException:
+        log.error("Reset email for account %s was not sent", account["id"])  # same reply either way
+    return FORGOT_REPLY
+
+
+@app.post("/api/v1/auth/reset-password", tags=["Auth"])
+def reset_password(payload: ResetPasswordRequest, conn=Depends(db.get_db)):
+    """Sets a new password from an emailed link, signs out every device, clears any
+    lockout, and logs this browser in."""
+    token = db.find_account_token(conn, db.hash_token(payload.token), "reset_password")
+    if token is None:
+        raise HTTPException(status_code=400, detail=LINK_INVALID + " Ask for a new one.")
+    account = db.get_user_by_id(conn, token["user_id"])
+    if account and payload.new_password.lower() == account["username"].lower():
+        raise HTTPException(status_code=422, detail="Password cannot be the same as the username.")
+    account = db.reset_password_with_token(conn, token, hash_password(payload.new_password))
+    if account is None:
+        raise HTTPException(status_code=400, detail=LINK_INVALID + " Ask for a new one.")
+    return session_response(account)
+
+
+@app.post("/api/v1/auth/verify-email", tags=["Auth"])
+def verify_email(payload: VerifyEmailRequest, conn=Depends(db.get_db)):
+    """Confirms a recovery email from an emailed link. No login needed: the link is the proof."""
+    token = db.find_account_token(conn, db.hash_token(payload.token), "verify_email")
+    if token is None:
+        raise HTTPException(status_code=400, detail=LINK_INVALID)
+    if db.email_taken(conn, token["email"], token["user_id"]):
+        raise HTTPException(status_code=409, detail="Another account already uses this email.")
+    account = db.verify_email_with_token(conn, token)
+    if account is None:
+        raise HTTPException(status_code=400, detail=LINK_INVALID)
+    return {"detail": "Email confirmed. You can now use it to reset your password.",
+            "username": account["username"], "email": account["email"]}
+
+
+@app.post("/api/v1/me/email", status_code=202, tags=["Account"])
+def change_email(payload: EmailChange, request: Request, user: dict = Depends(require_user),
+                 conn=Depends(db.get_db)):
+    """Sends a confirmation link to the new address. The account keeps its old email
+    (if any) until the link is opened. Google accounts use the email Google verified."""
+    if user["google_linked"]:
+        raise HTTPException(status_code=400, detail="This account signs in with Google, which manages its email.")
+    if (user.get("email") or "").lower() == payload.email:
+        raise HTTPException(status_code=400, detail="That is already your email.")
+    if db.email_taken(conn, payload.email, user["id"]):
+        raise HTTPException(status_code=409, detail="Another account already uses this email.")
+    send_verification_link(conn, request, user, payload.email)
+    return {"detail": f"We sent a confirmation link to {payload.email}. Open it within {db.VERIFY_HOURS} hours."}
 
 
 @app.post("/api/v1/auth/logout-all", status_code=204, tags=["Account"])
