@@ -79,13 +79,13 @@
       <button type="button" class="type-pill" data-type="act">Acts (1900–1935)</button>
     </div>
     <p id="indexSummary" class="law-index-summary" aria-live="polite"></p>
-    <ol id="indexList" class="law-index-list"></ol>
+    <div id="indexList" class="grid law-index-grid"></div>
     <nav class="law-index-pager" aria-label="Pages">
       <button type="button" id="prevPage" class="pager-btn">&larr; Newer</button>
       <span id="pageInfo"></span>
       <button type="button" id="nextPage" class="pager-btn">Older &rarr;</button>
     </nav>
-    <p class="law-index-note">Titles and links come from the LawPhil Project's public archive. Laws marked <span class="has-guide-chip">Guide</span> also have a plain-English explanation here.</p>
+    <p class="law-index-note">Titles and links come from the LawPhil Project's public archive. Cards with a <strong>Read the guide</strong> link also have a plain-English explanation here.</p>
   </section>
 
   <!-- Modal Deep Dive View -->
@@ -169,7 +169,9 @@
       const prevBtn = document.getElementById("prevPage");
       const nextBtn = document.getElementById("nextPage");
       const typePills = [...document.querySelectorAll(".type-pill")];
-      const PER_PAGE = 25;
+      const PER_PAGE = 24; // fills 1, 2, 3 or 4 card columns evenly
+      const TYPE_NAMES = { ra: "Republic Act", pd: "Presidential Decree", bp: "Batas Pambansa", ca: "Commonwealth Act", act: "Act" };
+      const SHORT = { ra: "RA", pd: "PD", bp: "BP Blg.", ca: "CA", act: "Act No." };
       let view = "guides";
       let indexType = "";
       let indexPage = 1;
@@ -214,25 +216,26 @@
             ? `${n} ${data.total === 1 ? "law matches" : "laws match"} "${query}"`
             : `${n} ${data.total === 1 ? "law" : "laws"}`;
         indexList.innerHTML = data.items.map(law => `
-          <li class="law-row">
-            <div class="law-row-head">
-              <span class="law-row-label">${esc(law.label)}</span>
-              ${law.law_id ? '<span class="has-guide-chip">Guide</span>' : ""}
-              <span class="law-row-date">${esc(fmtDate(law.enacted_on) || law.year)}</span>
+          <article class="card law-card${law.law_id ? " has-guide" : ""}">
+            <div class="law-card-top">
+              <span class="badge law-card-type">${esc(TYPE_NAMES[law.law_type] || "Law")}</span>
+              <span class="law-card-date">${esc(fmtDate(law.enacted_on) || law.year)}</span>
             </div>
-            <p class="law-row-title">${esc(law.official_title)}</p>
-            <div class="law-row-actions">
+            <h3>${esc(SHORT[law.law_type] || "")} ${esc(law.number)}</h3>
+            <p class="law-card-title">${esc(law.official_title)}</p>
+            <div class="law-card-actions">
               ${law.law_id ? `<button type="button" class="law-row-guide" data-law="${esc(law.law_id)}">Read the guide</button>` : ""}
               <a href="${esc(law.source_url)}" target="_blank" rel="noopener noreferrer">Full text<span class="visually-hidden"> of ${esc(law.label)} (opens in a new tab)</span> &#8599;</a>
             </div>
-          </li>`).join("");
+          </article>`).join("");
         pageInfo.textContent = data.total ? `Page ${data.page.toLocaleString("en-PH")} of ${indexPages.toLocaleString("en-PH")}` : "";
         prevBtn.disabled = data.page <= 1;
         nextBtn.disabled = data.page >= indexPages;
       }
 
       indexList.addEventListener("click", async e => {
-        const btn = e.target.closest(".law-row-guide");
+        if (e.target.closest("a")) return;
+        const btn = e.target.closest(".law-row-guide") || e.target.closest(".law-card.has-guide")?.querySelector(".law-row-guide");
         if (!btn) return;
         const res = await apiFetch(`/api/v1/laws/${encodeURIComponent(btn.dataset.law)}`);
         if (res.ok) show(await res.json()); else alert(await errorMessage(res));
