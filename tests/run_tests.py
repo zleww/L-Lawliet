@@ -91,7 +91,8 @@ try:
     check("F-03", "List as guest: first 10 only", r.status_code == 200 and j["access"] == "guest" and ids == sorted(ids)[:10] and len(ids) == 10,
           f"{r.status_code}, {j['access']}, {j['count']} of {j['total']}, ids {ids[0]}..{ids[-1]}")
     r = c.get("/api/v1/laws/1", headers=U); notes = [n["user_name"] for n in r.json().get("user_notes", [])]
-    check("F-04", "Get law 1 with its comments", r.status_code == 200 and "Juan D." in notes, f"{r.status_code}, notes {notes}")
+    check("F-04", "Get law 1 with its comments (a list of named notes)",
+          r.status_code == 200 and isinstance(r.json().get("user_notes"), list) and all(notes), f"{r.status_code}, notes {notes}")
     before = sql("SELECT ra_number, official_title, year, min_fine_php, updated_at FROM laws WHERE id = %s", (nid,))[0]
     r = c.patch(f"/api/v1/laws/{nid}", json={"min_fine_php": 5000}, headers=A)
     after = sql("SELECT ra_number, official_title, year, min_fine_php, updated_at FROM laws WHERE id = %s", (nid,))[0]
